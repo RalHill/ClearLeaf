@@ -1,0 +1,22 @@
+#!/bin/sh
+
+# pre-commit hook for ClearLeaf
+# Runs linting and type checking before each commit
+
+echo "🔍 Running pre-commit checks..."
+
+# Run linting
+npm run lint --silent
+if [ $? -ne 0 ]; then
+  echo "❌ Linting failed. Please fix errors and try again."
+  exit 1
+fi
+
+# Run type checking
+npm run type-check --silent
+if [ $? -ne 0 ]; then
+  echo "❌ Type checking failed. Please fix errors and try again."
+  exit 1
+fi
+
+echo "✅ Pre-commit checks passed!"
