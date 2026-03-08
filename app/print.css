@@ -1,0 +1,111 @@
+/* app/print.css - Print styles for compliance report export */
+
+@media print {
+  /* Hide header and navigation */
+  header,
+  nav,
+  .sidebar,
+  [role="navigation"],
+  button:not(.no-hide-print) {
+    display: none !important;
+  }
+
+  /* Hide action bar during print */
+  .sticky.bottom-0,
+  [style*="position: sticky"] {
+    position: static !important;
+    display: none !important;
+  }
+
+  /* Full width for report */
+  body {
+    margin: 0;
+    padding: 0;
+  }
+
+  main {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Report content styling */
+  .flex-1 {
+    width: 100% !important;
+  }
+
+  /* Paper sizing */
+  @page {
+    size: A4;
+    margin: 0.5in;
+  }
+
+  /* Text and layout */
+  body {
+    font-size: 11pt;
+    line-height: 1.5;
+    color: #000;
+  }
+
+  /* Preserve spacing */
+  h1,
+  h2,
+  h3 {
+    page-break-after: avoid;
+  }
+
+  div {
+    page-break-inside: avoid;
+  }
+
+  /* Hide inline elements that shouldn't print */
+  [role="button"],
+  input,
+  .hover\:bg-light-green,
+  .transition-all,
+  .cursor-pointer {
+    display: none !important;
+  }
+
+  /* Ensure text is black on white */
+  * {
+    background-color: white !important;
+    color: black !important;
+    box-shadow: none !important;
+    border-color: #999 !important;
+  }
+
+  /* Preserve borders for readability */
+  .border-l-4,
+  .border,
+  .border-l {
+    border: 1px solid #999 !important;
+  }
+
+  /* Report header and content */
+  .bg-gray-50,
+  .bg-light-green,
+  .bg-white {
+    background-color: white !important;
+    border: 1px solid #999 !important;
+  }
+
+  /* Code blocks */
+  code,
+  pre {
+    font-family: "Courier New", monospace;
+    font-size: 10pt;
+    border: 1px solid #999 !important;
+    page-break-inside: avoid;
+  }
+
+  /* Tables and lists */
+  table,
+  ul,
+  ol {
+    page-break-inside: avoid;
+  }
+
+  li {
+    page-break-inside: avoid;
+  }
+}

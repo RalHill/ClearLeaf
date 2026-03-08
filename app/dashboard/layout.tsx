@@ -46,10 +46,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       href: "/dashboard/news",
     },
     {
-      id: "library",
-      icon: "📁",
-      label: "Policy Library",
-      href: "/dashboard/library",
+      id: "compliance",
+      icon: "🛡️",
+      label: "Policy Compliance",
+      href: "/dashboard/compliance",
     },
     {
       id: "compare",
