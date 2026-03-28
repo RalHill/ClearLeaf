@@ -1,7 +1,7 @@
 -- Migration 002: Chat Messages & Usage
 CREATE TABLE chat_messages (
   id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES user_profiles(id) ON DELETE CASCADE,
   role TEXT NOT NULL,
   content TEXT NOT NULL,
   province TEXT NOT NULL,
@@ -12,17 +12,16 @@ CREATE TABLE chat_messages (
 
 CREATE TABLE usage_records (
   id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES user_profiles(id) ON DELETE CASCADE,
   action_type TEXT NOT NULL,
   province TEXT,
+  metadata JSONB,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Row-level security
+-- App-layer auth (NextAuth + server routes). Open policies — DB not exposed publicly.
 ALTER TABLE chat_messages ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "users_read_own" ON chat_messages FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "users_insert_own" ON chat_messages FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "chat_all" ON chat_messages FOR ALL USING (TRUE) WITH CHECK (TRUE);
 
 ALTER TABLE usage_records ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "users_read_own" ON usage_records FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "users_insert_own" ON usage_records FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "usage_all" ON usage_records FOR ALL USING (TRUE) WITH CHECK (TRUE);

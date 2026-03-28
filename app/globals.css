@@ -4,6 +4,62 @@
 @tailwind components;
 @tailwind utilities;
 
+html {
+  scroll-behavior: smooth;
+}
+
+:root {
+  --radius: 0.625rem;
+  --background: 0 0% 100%;
+  --foreground: 0 0% 8%;
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 8%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 0% 8%;
+  --primary: 0 0% 12%;
+  --primary-foreground: 0 0% 98%;
+  --secondary: 0 0% 96%;
+  --secondary-foreground: 0 0% 12%;
+  --muted: 0 0% 96%;
+  --muted-foreground: 0 0% 35%;
+  --accent: 0 0% 96%;
+  --accent-foreground: 0 0% 12%;
+  --destructive: 0 84% 60%;
+  --border: 0 0% 92%;
+  --input: 0 0% 92%;
+  --ring: 0 0% 44%;
+}
+
+.dark {
+  --background: 0 0% 8%;
+  --foreground: 0 0% 98%;
+  --card: 0 0% 12%;
+  --card-foreground: 0 0% 98%;
+  --popover: 0 0% 12%;
+  --popover-foreground: 0 0% 98%;
+  --primary: 0 0% 92%;
+  --primary-foreground: 0 0% 12%;
+  --secondary: 0 0% 17%;
+  --secondary-foreground: 0 0% 98%;
+  --muted: 0 0% 17%;
+  --muted-foreground: 0 0% 44%;
+  --accent: 0 0% 17%;
+  --accent-foreground: 0 0% 98%;
+  --destructive: 0 84% 60%;
+  --border: 0 0% 100% / 10%;
+  --input: 0 0% 100% / 15%;
+  --ring: 0 0% 35%;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -19,157 +75,10 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #d1cfc9;
-  border-radius: 4px;
+  background: hsl(var(--border));
+  border-radius: 2px;
 }
 
-body {
-  font-family: "DM Sans", "Segoe UI", sans-serif;
-  background: #f8f7f4;
-  color: #1c1c1e;
-}
-
-textarea {
-  resize: none;
-  font-family: inherit;
-}
-
-textarea:focus {
-  outline: none;
-}
-
-button {
-  font-family: inherit;
-}
-
-/* Navigation item animations */
-.nav-item {
-  transition: all 0.15s ease;
-  cursor: pointer;
-}
-
-.nav-item:hover {
-  background: rgba(44, 95, 79, 0.08);
-}
-
-.nav-item.active {
-  background: #2c5f4f;
-  color: white;
-}
-
-/* Send button animation */
-.send-btn {
-  transition: all 0.15s ease;
-}
-
-.send-btn:hover {
-  transform: scale(1.05);
-}
-
-.send-btn:active {
-  transform: scale(0.97);
-}
-
-/* News card animations */
-.news-card {
-  transition: box-shadow 0.15s ease, transform 0.15s ease;
-  cursor: pointer;
-}
-
-.news-card:hover {
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-  transform: translateY(-1px);
-}
-
-/* Chip/filter animations */
-.chip {
-  transition: all 0.12s ease;
-  cursor: pointer;
-}
-
-.chip:hover {
-  opacity: 0.8;
-}
-
-/* Compare toggle animations */
-.compare-toggle {
-  transition: all 0.12s ease;
-  cursor: pointer;
-}
-
-.compare-toggle:hover {
-  background: #e8f0ed;
-}
-
-.compare-toggle.active-compare {
-  background: #2c5f4f;
-  color: white;
-}
-
-/* Metric button animations */
-.metric-btn {
-  transition: all 0.12s ease;
-  cursor: pointer;
-}
-
-.metric-btn:hover {
-  background: #eef4f1;
-}
-
-.metric-btn.active-metric {
-  background: #2c5f4f;
-  color: white;
-}
-
-/* Walkthrough card animations */
-.wt-card {
-  transition: all 0.15s ease;
-  cursor: pointer;
-}
-
-.wt-card:hover {
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-  transform: translateY(-2px);
-}
-
-/* Message fade-in animation */
-.msg-appear {
-  animation: fadeUp 0.3s ease;
-}
-
-@keyframes fadeUp {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Typing indicator animation */
-.typing-dot {
-  animation: blink 1.2s infinite;
-}
-
-.typing-dot:nth-child(2) {
-  animation-delay: 0.2s;
-}
-
-.typing-dot:nth-child(3) {
-  animation-delay: 0.4s;
-}
-
-@keyframes blink {
-  0%,
-  80%,
-  100% {
-    opacity: 0.2;
-    transform: scale(0.85);
-  }
-  40% {
-    opacity: 1;
-    transform: scale(1);
-  }
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--input));
 }

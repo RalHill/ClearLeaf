@@ -1,4 +1,5 @@
-import { createSupabaseServerClient } from "../supabase/server";
+import "@/lib/db/ensure-postgres-url";
+import { sql } from "@vercel/postgres";
 import { generateEmbedding } from "./embeddings";
 
 export async function retrieveRelevantChunks(
@@ -7,31 +8,42 @@ export async function retrieveRelevantChunks(
   matchCount: number = 6
 ) {
   try {
-    // Generate embedding for the query
     const embedding = await generateEmbedding(query);
+    const vectorLiteral = `[${embedding.join(",")}]`;
 
-    // Call the pgvector matching function
-    const supabase = await createSupabaseServerClient();
-    const { data, error } = await supabase.rpc("match_knowledge_chunks", {
-      query_embedding: embedding,
-      filter_province: province,
-      match_count: matchCount,
-      match_threshold: 0.45,
-    });
+    const result = await sql`
+      SELECT * FROM match_knowledge_chunks(
+        ${vectorLiteral}::vector,
+        ${province},
+        0.45,
+        ${matchCount}
+      )
+    `;
 
-    if (error) {
-      console.error("Retrieval error:", error);
-      return [];
-    }
-
-    return data || [];
+    return (result.rows ?? []) as Array<{
+      id: bigint;
+      content: string;
+      section_title: string | null;
+      article_number: string | null;
+      source_title: string;
+      province: string;
+      topic_tags: string[] | null;
+      similarity: number;
+    }>;
   } catch (error) {
     console.error("Failed to retrieve chunks:", error);
     return [];
   }
 }
 
-export function formatChunksAsContext(chunks: any[]): string {
+export function formatChunksAsContext(
+  chunks: Array<{
+    content: string;
+    section_title?: string | null;
+    article_number?: string | null;
+    source_title: string;
+  }>
+): string {
   if (chunks.length === 0) {
     return "(No relevant statute text found in knowledge base)";
   }

@@ -1,5 +1,8 @@
--- Migration 001: Knowledge Base Schema
--- Organizations & Users
+-- Migration 001: Knowledge Base Schema (Neon / standalone Postgres)
+-- pgvector must exist before VECTOR columns
+CREATE EXTENSION IF NOT EXISTS vector;
+
+-- Organizations & Users (no Supabase auth.users — NextAuth owns identity)
 CREATE TABLE organizations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   stripe_customer_id TEXT UNIQUE,
@@ -11,8 +14,11 @@ CREATE TABLE organizations (
 );
 
 CREATE TABLE user_profiles (
-  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  email TEXT UNIQUE,
+  password_hash TEXT,
+  name TEXT,
   role TEXT DEFAULT 'member',
   preferred_province TEXT DEFAULT 'ON',
   created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -45,14 +51,11 @@ CREATE TABLE knowledge_chunks (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Enable pgvector extension
-CREATE EXTENSION IF NOT EXISTS vector;
-
 -- HNSW index for fast similarity search
 CREATE INDEX ON knowledge_chunks USING hnsw (embedding vector_cosine_ops)
 WITH (m = 16, ef_construction = 64);
 
--- Row-level security
+-- Row-level security: public read on knowledge tables (server enforces user auth)
 ALTER TABLE knowledge_chunks ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "public_read" ON knowledge_chunks FOR SELECT USING (TRUE);
 

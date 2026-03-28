@@ -13,18 +13,15 @@ CREATE TABLE policy_templates (
 
 CREATE TABLE saved_items (
   id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES user_profiles(id) ON DELETE CASCADE,
   item_type TEXT NOT NULL,
   item_id TEXT NOT NULL,
   notes TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Row-level security
 ALTER TABLE policy_templates ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "public_read" ON policy_templates FOR SELECT USING (TRUE);
 
 ALTER TABLE saved_items ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "users_read_own" ON saved_items FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "users_insert_own" ON saved_items FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "users_delete_own" ON saved_items FOR DELETE USING (auth.uid() = user_id);
+CREATE POLICY "saved_all" ON saved_items FOR ALL USING (TRUE) WITH CHECK (TRUE);

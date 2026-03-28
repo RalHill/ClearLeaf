@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import "./print.css";
+import { SessionProvider } from "@/components/providers/session-provider";
 
 export const metadata: Metadata = {
   title: "ClearLeaf — Canada's HR Intelligence Layer",
@@ -35,7 +36,7 @@ export default function RootLayout({
         />
       </head>
       <body className="font-dm bg-off-white text-near-black antialiased">
-        {children}
+        <SessionProvider>{children}</SessionProvider>
       </body>
     </html>
   );
