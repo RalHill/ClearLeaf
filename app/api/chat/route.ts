@@ -4,9 +4,6 @@ import { sql } from "@vercel/postgres";
 import { z } from "zod";
 import { selectModel, OPENROUTER_BASE } from "@/lib/ai/chat";
 import { createSystemPrompt } from "@/lib/ai/prompts";
-import { getSessionUser, getMonthlyQueryCount } from "@/lib/db/server";
-
-const FREE_PLAN_LIMIT = 5;
 
 const chatRequestSchema = z.object({
   message: z.string().min(1).max(2000),
@@ -29,27 +26,8 @@ export async function POST(request: NextRequest) {
 
     const isDemoMode = !process.env.OPENROUTER_API_KEY;
 
-    // ── Auth check (skip in demo mode) ──────────────────────────────────────
-    let userId: string | null = null;
-    if (!isDemoMode) {
-      const user = await getSessionUser();
-      if (!user) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-      }
-      userId = user.id;
-
-      // Rate-limit free users
-      const monthlyCount = await getMonthlyQueryCount(userId);
-      if (monthlyCount >= FREE_PLAN_LIMIT) {
-        return NextResponse.json(
-          {
-            error: "quota_exceeded",
-            message: `You've used all ${FREE_PLAN_LIMIT} free queries this month. Upgrade to Starter for unlimited access.`,
-          },
-          { status: 429 }
-        );
-      }
-    }
+    // Auth removed for testing — no rate limiting, no user required
+    const userId: string | null = null;
 
     // ── Demo mode fallback ───────────────────────────────────────────────────
     if (isDemoMode) {

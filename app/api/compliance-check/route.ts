@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import "@/lib/db/ensure-postgres-url";
 import { sql } from "@vercel/postgres";
-import { getSessionUser, getUserPlan } from "@/lib/db/server";
 import { selectModel, OPENROUTER_BASE } from "@/lib/ai/chat";
 import { buildComplianceSystemPrompt } from "@/lib/ai/prompts";
 import { ComplianceCheckResult } from "@/lib/types/compliance";
@@ -72,22 +71,7 @@ async function getRelevantChunks(
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await getSessionUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const plan = await getUserPlan(user.id);
-    if (plan === "free") {
-      return NextResponse.json(
-        {
-          error: "plan_required",
-          message: "Policy Compliance Checker is available on Starter and above.",
-        },
-        { status: 403 }
-      );
-    }
-
+    // Auth removed for testing — all features unlocked
     const { documentText, fileName, province, policyType } = await request.json();
     if (!documentText || !province || !policyType) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -156,16 +140,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Log usage (non-blocking)
-    sql`
-      INSERT INTO usage_records (user_id, action_type, province, metadata)
-      VALUES (
-        ${user.id},
-        'compliance_check',
-        ${province},
-        ${JSON.stringify({ policyType, fileName })}::jsonb
-      )
-    `.catch((err) => console.error("Usage log error:", err));
+    // Usage logging skipped (no auth)
 
     return NextResponse.json(result);
   } catch (error) {

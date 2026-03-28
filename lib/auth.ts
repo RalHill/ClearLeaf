@@ -20,12 +20,6 @@ declare module "next-auth" {
   }
 }
 
-declare module "next-auth/jwt" {
-  interface JWT {
-    id?: string;
-    orgId?: string;
-  }
-}
 
 async function findOrCreateOAuthUser(email: string, name: string | null) {
   const existing = await sql`
@@ -97,24 +91,26 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   providers,
   callbacks: {
     async jwt({ token, user, account, profile }) {
+      const t = token as { id?: string; orgId?: string } & typeof token;
       if (user?.email) {
         if (account?.provider === "github" && user.email) {
           const p = profile as { name?: string } | undefined;
           const name = p?.name ?? user.name ?? null;
           const row = await findOrCreateOAuthUser(user.email, name);
-          token.id = row.id;
-          token.orgId = row.orgId;
+          t.id = row.id;
+          t.orgId = row.orgId;
         } else if (user.id && "orgId" in user && user.orgId) {
-          token.id = user.id;
-          token.orgId = user.orgId as string;
+          t.id = user.id;
+          t.orgId = user.orgId as string;
         }
       }
-      return token;
+      return t;
     },
     async session({ session, token }) {
-      if (session.user && token.id && token.orgId) {
-        session.user.id = token.id;
-        session.user.orgId = token.orgId;
+      const t = token as { id?: string; orgId?: string };
+      if (session.user && t.id && t.orgId) {
+        session.user.id = t.id;
+        session.user.orgId = t.orgId;
       }
       return session;
     },
