@@ -1,4 +1,4 @@
-export type ModelTier = "haiku" | "sonnet" | "qwen3";
+export type ModelTier = "haiku" | "sonnet" | "llama";
 
 export interface SelectModelContext {
   isDevMode: boolean;
@@ -7,31 +7,18 @@ export interface SelectModelContext {
 
 /**
  * Central routing logic for model selection.
- * This is the single source of truth for which model handles which request.
+ * Dev: free Llama 3.3 70B via OpenRouter (no cost)
+ * Prod default: Claude Haiku 3.5 (fast + cheap)
+ * Prod escalation: Claude Sonnet 4.5 (complex legal queries)
  */
 export function selectModel(context: SelectModelContext): string {
-  // Development mode: use free Qwen3 model
   if (context.isDevMode) {
-    return "qwen/qwen3-30b-a3b:free";
+    return "meta-llama/llama-3.3-70b-instruct:free";
   }
-
-  // Escalation: use Sonnet for low-confidence responses (post-MVP feature)
   if (context.requiresEscalation) {
     return "anthropic/claude-sonnet-4-5";
   }
-
-  // Production default: Claude Haiku 3.5 for all user-facing queries
   return "anthropic/claude-haiku-3.5";
 }
 
-export const OPENROUTER_CONFIG = {
-  baseURL: "https://openrouter.ai/api/v1",
-  headers: {
-    Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
-    "HTTP-Referer": process.env.NEXT_PUBLIC_APP_URL,
-    "X-Title": "ClearLeaf HR Intelligence",
-  },
-  temperature: 0.1, // Low for legal accuracy
-  max_tokens: 1000,
-  stream: true,
-};
+export const OPENROUTER_BASE = "https://openrouter.ai/api/v1";

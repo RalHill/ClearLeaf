@@ -129,6 +129,7 @@ export interface Toast {
   duration?: number;
 }
 
+// eslint-disable-next-line no-redeclare
 export function Toast({ toast, onClose }: { toast: Toast; onClose: () => void }) {
   const colors = {
     success: "bg-green-100 text-green-800 border-green-300",
