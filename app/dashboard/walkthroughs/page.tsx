@@ -1,269 +1,480 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { WALKTHROUGHS, type Walkthrough } from "@/lib/walkthroughs/data";
 
-interface Situation {
-  icon: string;
-  title: string;
-  steps: number;
-  provinces: number;
-  desc: string;
-  slug: string;
-  locked: boolean;
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+interface CheckedItems {
+  [itemId: string]: boolean;
 }
 
-const SITUATIONS: Situation[] = [
-  {
-    icon: "⚠️",
-    title: "Terminating an Employee",
-    steps: 8,
-    provinces: 13,
-    desc: "Without cause or for cause — province-specific checklist",
-    slug: "termination",
-    locked: false,
-  },
-  {
-    icon: "🛡️",
-    title: "Harassment Complaint Received",
-    steps: 7,
-    provinces: 13,
-    desc: "Investigation process, timelines, documentation",
-    slug: "harassment",
-    locked: false,
-  },
-  {
-    icon: "♿",
-    title: "Accommodation Request",
-    steps: 6,
-    provinces: 13,
-    desc: "Duty to accommodate to the point of undue hardship",
-    slug: "accommodation",
-    locked: true,
-  },
-  {
-    icon: "📋",
-    title: "Conducting a Layoff",
-    steps: 5,
-    provinces: 13,
-    desc: "Temporary vs permanent, notice, recall rights",
-    slug: "layoff",
-    locked: true,
-  },
-  {
-    icon: "⚖️",
-    title: "Human Rights Complaint Filed",
-    steps: 7,
-    provinces: 13,
-    desc: "Internal process, tribunal timelines, documentation",
-    slug: "human-rights",
-    locked: true,
-  },
-];
+// ── Upgrade Gate ──────────────────────────────────────────────────────────────
 
-export default function WalkthroughsPage() {
-  const [selectedSituation, setSelectedSituation] = useState<string | null>(
-    null
-  );
-  const [currentStep, setCurrentStep] = useState(0);
-
-  if (selectedSituation) {
-    const situation = SITUATIONS.find((s) => s.slug === selectedSituation);
-    if (!situation) return null;
-
-    return (
-      <div className="flex-1 overflow-y-auto px-6 py-6">
-        <div className="max-w-3xl mx-auto">
-          {/* Back button */}
-          <button
-            onClick={() => {
-              setSelectedSituation(null);
-              setCurrentStep(0);
-            }}
-            className="text-xs text-mid-green font-medium mb-6 hover:underline"
-          >
-            ← Back to Walkthroughs
-          </button>
-
-          {/* Header */}
-          <div className="mb-8">
-            <div className="text-4xl mb-3">{situation.icon}</div>
-            <h1 className="font-serif text-4xl text-dark-green mb-2 font-light">
-              {situation.title}
-            </h1>
-            <p className="text-muted text-sm">
-              {situation.desc} · {situation.steps} steps · All{" "}
-              {situation.provinces} provinces
-            </p>
-          </div>
-
-          {/* Progress */}
-          <div className="mb-8 bg-white rounded-lg border border-border-color p-4">
-            <div className="flex items-center gap-2 mb-3">
-              {Array.from({ length: situation.steps }).map((_, i) => (
-                <div
-                  key={i}
-                  className={`h-2 flex-1 rounded-full transition-colors ${
-                    i <= currentStep
-                      ? "bg-accent-green"
-                      : "bg-off-white border border-border-color"
-                  }`}
-                />
-              ))}
-            </div>
-            <div className="text-xs text-muted">
-              Step {currentStep + 1} of {situation.steps}
-            </div>
-          </div>
-
-          {/* Step Content (Placeholder) */}
-          <div className="bg-white rounded-lg border border-border-color p-8 mb-6">
-            <h2 className="font-serif text-2xl text-dark-green mb-4 font-light">
-              Step {currentStep + 1}: {{
-                0: "Documentation Review",
-                1: "Immediate Actions",
-                2: "Communication Plan",
-                3: "Legal Compliance Check",
-                4: "Execution",
-                5: "Follow-up",
-                6: "Record Keeping",
-                7: "Closure",
-              }[currentStep] || "Next Step"}
-            </h2>
-
-            <p className="text-sm text-near-black leading-relaxed mb-6">
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit. This is
-              placeholder content for the walkthrough step. Real content would
-              include:
-            </p>
-
-            <ul className="space-y-3 mb-6">
-              <li className="flex gap-3">
-                <input type="checkbox" className="mt-1" />
-                <span className="text-sm">
-                  Action item specific to Ontario jurisdiction
-                </span>
-              </li>
-              <li className="flex gap-3">
-                <input type="checkbox" className="mt-1" />
-                <span className="text-sm">
-                  Another action item with legal citation
-                </span>
-              </li>
-              <li className="flex gap-3">
-                <input type="checkbox" className="mt-1" />
-                <span className="text-sm">
-                  Third action item or decision point
-                </span>
-              </li>
-            </ul>
-
-            <div className="bg-light-green p-4 rounded-lg mb-6 border border-border-color">
-              <p className="text-xs font-semibold text-mid-green mb-2">
-                💡 Tip
-              </p>
-              <p className="text-sm text-mid-green">
-                Province-specific advice would appear here, based on selected
-                jurisdiction.
-              </p>
-            </div>
-
-            <button className="text-sm text-mid-green font-medium hover:underline">
-              Ask ClearLeaf about this step →
-            </button>
-          </div>
-
-          {/* Navigation */}
-          <div className="flex items-center justify-between gap-4">
-            <button
-              onClick={() => setCurrentStep(Math.max(0, currentStep - 1))}
-              disabled={currentStep === 0}
-              className="px-4 py-2 rounded-lg border border-border-color text-sm font-medium hover:bg-light-green disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              ← Previous
-            </button>
-
-            {currentStep === situation.steps - 1 ? (
-              <button className="px-4 py-2 rounded-lg bg-accent-green text-white text-sm font-medium hover:bg-accent-green/90">
-                Generate My Checklist
-              </button>
-            ) : (
-              <button
-                onClick={() =>
-                  setCurrentStep(
-                    Math.min(situation.steps - 1, currentStep + 1)
-                  )
-                }
-                className="px-4 py-2 rounded-lg bg-mid-green text-white text-sm font-medium hover:bg-mid-green/90"
-              >
-                Next →
-              </button>
-            )}
-          </div>
-        </div>
+function UpgradeGate({ onUpgrade }: { onUpgrade: () => void }) {
+  return (
+    <div className="flex-1 overflow-y-auto px-6 py-6">
+      <div className="max-w-2xl mx-auto text-center pt-16">
+        <div className="text-6xl mb-6">🔒</div>
+        <h2 className="font-serif text-3xl text-dark-green mb-4 font-light">
+          Starter Plan Required
+        </h2>
+        <p className="text-muted text-sm mb-8 leading-relaxed max-w-md mx-auto">
+          This walkthrough is available on the Starter and Professional plans. Upgrade to access all 5
+          guided walkthroughs with province-specific checklists and statute citations.
+        </p>
+        <button
+          onClick={onUpgrade}
+          className="px-6 py-3 bg-accent-green text-white rounded-lg font-semibold hover:bg-accent-green/90 transition-colors"
+        >
+          Upgrade to Starter — $49/mo →
+        </button>
+        <p className="text-xs text-muted mt-4">No commitment. Cancel anytime.</p>
       </div>
-    );
-  }
+    </div>
+  );
+}
+
+// ── Checklist Item ────────────────────────────────────────────────────────────
+
+function ChecklistItem({
+  id,
+  text,
+  required,
+  checked,
+  onChange,
+}: {
+  id: string;
+  text: string;
+  required: boolean;
+  checked: boolean;
+  onChange: (id: string, val: boolean) => void;
+}) {
+  return (
+    <li className="flex gap-3 items-start">
+      <input
+        type="checkbox"
+        id={`chk-${id}`}
+        checked={checked}
+        onChange={(e) => onChange(id, e.target.checked)}
+        className="mt-1 h-4 w-4 accent-accent-green cursor-pointer flex-shrink-0"
+      />
+      <label htmlFor={`chk-${id}`} className="text-sm text-near-black leading-relaxed cursor-pointer select-none">
+        {text}
+        {required && (
+          <span className="ml-2 text-xs text-red-500 font-medium">Required</span>
+        )}
+      </label>
+    </li>
+  );
+}
+
+// ── Step View ─────────────────────────────────────────────────────────────────
+
+function StepView({
+  walkthrough,
+  stepIndex,
+  checkedItems,
+  onCheckChange,
+  onBack,
+  onPrev,
+  onNext,
+  onFinish,
+  province,
+}: {
+  walkthrough: Walkthrough;
+  stepIndex: number;
+  checkedItems: CheckedItems;
+  onCheckChange: (id: string, val: boolean) => void;
+  onBack: () => void;
+  onPrev: () => void;
+  onNext: () => void;
+  onFinish: () => void;
+  province: string;
+}) {
+  const step = walkthrough.steps[stepIndex];
+  const totalSteps = walkthrough.steps.length;
+  const progressPercent = ((stepIndex + 1) / totalSteps) * 100;
+  const isLast = stepIndex === totalSteps - 1;
+  const requiredChecked = step.checklist
+    .filter((i) => i.required)
+    .every((i) => checkedItems[i.id]);
+  const allChecked = step.checklist.every((i) => checkedItems[i.id]);
+
+  const handleAskClearLeaf = () => {
+    const q = encodeURIComponent(step.askPrompt + ` (${province})`);
+    window.open(`/dashboard/chat?q=${q}`, "_self");
+  };
 
   return (
     <div className="flex-1 overflow-y-auto px-6 py-6">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-3xl mx-auto">
+        {/* Back */}
+        <button
+          onClick={onBack}
+          className="text-xs text-mid-green font-medium mb-6 hover:underline"
+        >
+          ← Back to Walkthroughs
+        </button>
+
         {/* Header */}
+        <div className="mb-6">
+          <div className="text-4xl mb-2">{walkthrough.icon}</div>
+          <h1 className="font-serif text-3xl text-dark-green mb-1 font-light">
+            {walkthrough.title}
+          </h1>
+          <p className="text-xs text-muted">
+            {walkthrough.desc} · All 13 provinces
+          </p>
+        </div>
+
+        {/* Progress bar */}
+        <div className="mb-8 bg-white rounded-lg border border-border-color p-4">
+          <div className="flex gap-1 mb-2">
+            {walkthrough.steps.map((_, i) => (
+              <div
+                key={i}
+                className={`h-2 flex-1 rounded-full transition-colors ${
+                  i < stepIndex
+                    ? "bg-accent-green"
+                    : i === stepIndex
+                    ? "bg-mid-green"
+                    : "bg-off-white border border-border-color"
+                }`}
+              />
+            ))}
+          </div>
+          <div className="text-xs text-muted flex justify-between">
+            <span>Step {stepIndex + 1} of {totalSteps}</span>
+            <span>{Math.round(progressPercent)}% complete</span>
+          </div>
+        </div>
+
+        {/* Step Content */}
+        <div className="bg-white rounded-lg border border-border-color p-8 mb-6">
+          <h2 className="font-serif text-2xl text-dark-green mb-3 font-light">
+            Step {stepIndex + 1}: {step.title}
+          </h2>
+          <p className="text-sm text-near-black leading-relaxed mb-6">
+            {step.description}
+          </p>
+
+          {/* Checklist */}
+          <ul className="space-y-3 mb-6">
+            {step.checklist.map((item) => (
+              <ChecklistItem
+                key={item.id}
+                id={item.id}
+                text={item.text}
+                required={item.required}
+                checked={!!checkedItems[item.id]}
+                onChange={onCheckChange}
+              />
+            ))}
+          </ul>
+
+          {/* Tip */}
+          <div className="bg-light-green p-4 rounded-lg mb-6 border border-border-color">
+            <p className="text-xs font-semibold text-mid-green mb-1">💡 Legal Tip</p>
+            <p className="text-sm text-mid-green leading-relaxed">{step.tip}</p>
+          </div>
+
+          {/* Citation */}
+          <div className="bg-off-white px-4 py-3 rounded-lg border border-border-color mb-6">
+            <p className="text-xs font-semibold text-muted mb-1">📖 Statute Citation</p>
+            <p className="text-xs font-mono text-near-black">{step.citation}</p>
+          </div>
+
+          {/* Ask ClearLeaf */}
+          <button
+            onClick={handleAskClearLeaf}
+            className="text-sm text-mid-green font-medium hover:underline flex items-center gap-1"
+          >
+            Ask ClearLeaf about this step →
+          </button>
+        </div>
+
+        {/* Navigation */}
+        <div className="flex items-center justify-between gap-4">
+          <button
+            onClick={onPrev}
+            disabled={stepIndex === 0}
+            className="px-4 py-2 rounded-lg border border-border-color text-sm font-medium hover:bg-light-green disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            ← Previous
+          </button>
+
+          {!requiredChecked && (
+            <p className="text-xs text-muted text-center flex-1">
+              Complete required items to continue
+            </p>
+          )}
+
+          {isLast ? (
+            <button
+              onClick={onFinish}
+              disabled={!allChecked}
+              className="px-5 py-2 rounded-lg bg-accent-green text-white text-sm font-semibold hover:bg-accent-green/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Complete Walkthrough ✓
+            </button>
+          ) : (
+            <button
+              onClick={onNext}
+              disabled={!requiredChecked}
+              className="px-5 py-2 rounded-lg bg-mid-green text-white text-sm font-semibold hover:bg-mid-green/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Next →
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Summary / Completion View ──────────────────────────────────────────────────
+
+function CompletionView({
+  walkthrough,
+  checkedItems,
+  province,
+  onRestart,
+  onBack,
+}: {
+  walkthrough: Walkthrough;
+  checkedItems: CheckedItems;
+  province: string;
+  onRestart: () => void;
+  onBack: () => void;
+}) {
+  const allItems = walkthrough.steps.flatMap((s) => s.checklist);
+  const completedCount = allItems.filter((i) => checkedItems[i.id]).length;
+  const requiredItems = allItems.filter((i) => i.required);
+  const requiredComplete = requiredItems.every((i) => checkedItems[i.id]);
+
+  return (
+    <div className="flex-1 overflow-y-auto px-6 py-6">
+      <div className="max-w-3xl mx-auto">
+        <button onClick={onBack} className="text-xs text-mid-green font-medium mb-6 hover:underline">
+          ← Back to Walkthroughs
+        </button>
+
+        <div className="bg-white rounded-lg border border-border-color p-8 mb-6">
+          <div className="text-5xl mb-4">{requiredComplete ? "✅" : "⚠️"}</div>
+          <h2 className="font-serif text-3xl text-dark-green mb-2 font-light">
+            {requiredComplete ? "Walkthrough Complete" : "Review Required Items"}
+          </h2>
+          <p className="text-sm text-muted mb-6">
+            {completedCount} of {allItems.length} items completed · Province: <span className="font-semibold">{province}</span>
+          </p>
+
+          {/* Summary table */}
+          <div className="border border-border-color rounded-lg overflow-hidden mb-6">
+            {walkthrough.steps.map((step, si) => {
+              const stepItems = step.checklist;
+              const stepComplete = stepItems.filter((i) => i.required).every((i) => checkedItems[i.id]);
+              return (
+                <div
+                  key={si}
+                  className={`flex items-center justify-between px-4 py-3 border-b border-border-color last:border-0 ${
+                    stepComplete ? "bg-light-green/50" : "bg-red-50"
+                  }`}
+                >
+                  <span className="text-sm font-medium text-near-black">
+                    Step {si + 1}: {step.title}
+                  </span>
+                  <span className={`text-xs font-semibold ${stepComplete ? "text-accent-green" : "text-red-500"}`}>
+                    {stepComplete ? "✓ Complete" : "Incomplete"}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              onClick={onRestart}
+              className="px-4 py-2 rounded-lg border border-border-color text-sm font-medium hover:bg-light-green transition-colors"
+            >
+              Restart Walkthrough
+            </button>
+            <button
+              onClick={() => window.print()}
+              className="px-4 py-2 rounded-lg bg-mid-green text-white text-sm font-semibold hover:bg-mid-green/90 transition-colors"
+            >
+              Print Checklist
+            </button>
+          </div>
+        </div>
+
+        <p className="text-xs text-muted text-center">
+          ClearLeaf provides informational intelligence only — not legal advice. For decisions affecting individual employees, consult a qualified Canadian employment lawyer.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ── Main Page ─────────────────────────────────────────────────────────────────
+
+export default function WalkthroughsPage() {
+  const router = useRouter();
+  const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
+  const [stepIndex, setStepIndex] = useState(0);
+  const [checkedItems, setCheckedItems] = useState<CheckedItems>({});
+  const [completed, setCompleted] = useState(false);
+  const [plan, setPlan] = useState("free");
+  const [province, setProvince] = useState("ON");
+  const [showUpgradeGate, setShowUpgradeGate] = useState(false);
+  const [upgrading, setUpgrading] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/plan")
+      .then((r) => r.json())
+      .then((d) => setPlan(d.plan ?? "free"))
+      .catch(() => {});
+  }, []);
+
+  const handleUpgrade = useCallback(async () => {
+    setUpgrading(true);
+    try {
+      const res = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan: "starter", billing: "monthly" }),
+      });
+      const data = await res.json();
+      if (data.url) window.location.href = data.url;
+    } catch {
+      alert("Could not start checkout. Please try again.");
+    } finally {
+      setUpgrading(false);
+    }
+  }, []);
+
+  const handleSelect = (slug: string, locked: boolean) => {
+    if (locked && plan === "free") {
+      setShowUpgradeGate(true);
+      setSelectedSlug(slug);
+      return;
+    }
+    setSelectedSlug(slug);
+    setStepIndex(0);
+    setCheckedItems({});
+    setCompleted(false);
+    setShowUpgradeGate(false);
+  };
+
+  const handleBack = () => {
+    setSelectedSlug(null);
+    setStepIndex(0);
+    setCheckedItems({});
+    setCompleted(false);
+    setShowUpgradeGate(false);
+  };
+
+  const handleCheckChange = (id: string, val: boolean) => {
+    setCheckedItems((prev) => ({ ...prev, [id]: val }));
+  };
+
+  const walkthrough = selectedSlug
+    ? WALKTHROUGHS.find((w) => w.slug === selectedSlug) ?? null
+    : null;
+
+  // ── Upgrade gate view ─────────────────────────────────────────────────────
+  if (showUpgradeGate) {
+    return <UpgradeGate onUpgrade={handleUpgrade} />;
+  }
+
+  // ── Completion view ───────────────────────────────────────────────────────
+  if (walkthrough && completed) {
+    return (
+      <CompletionView
+        walkthrough={walkthrough}
+        checkedItems={checkedItems}
+        province={province}
+        onRestart={() => {
+          setStepIndex(0);
+          setCheckedItems({});
+          setCompleted(false);
+        }}
+        onBack={handleBack}
+      />
+    );
+  }
+
+  // ── Step view ─────────────────────────────────────────────────────────────
+  if (walkthrough) {
+    return (
+      <StepView
+        walkthrough={walkthrough}
+        stepIndex={stepIndex}
+        checkedItems={checkedItems}
+        onCheckChange={handleCheckChange}
+        onBack={handleBack}
+        onPrev={() => setStepIndex((i) => Math.max(0, i - 1))}
+        onNext={() => setStepIndex((i) => Math.min(walkthrough.steps.length - 1, i + 1))}
+        onFinish={() => setCompleted(true)}
+        province={province}
+      />
+    );
+  }
+
+  // ── Card grid ─────────────────────────────────────────────────────────────
+  return (
+    <div className="flex-1 overflow-y-auto px-6 py-6">
+      <div className="max-w-4xl mx-auto">
         <div className="mb-6">
           <h2 className="font-serif text-3xl text-dark-green mb-1 font-light">
             Situation Walkthroughs
           </h2>
           <p className="text-xs text-muted">
-            Step-by-step guided processes for high-stakes HR situations.
-            Province-specific checklists generated at the end.
+            Step-by-step guided processes for high-stakes HR situations. Province-specific checklists generated at the end.
           </p>
         </div>
 
-        {/* Situations Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {SITUATIONS.map((s) => (
-            <div
-              key={s.slug}
-              className={`wt-card bg-white rounded-lg border border-border-color p-6 flex flex-col gap-4 ${
-                s.locked ? "opacity-70" : ""
-              }`}
-            >
-              <div className="text-4xl">{s.icon}</div>
-
-              <div>
-                <h3 className="text-lg font-semibold text-dark-green mb-1">
-                  {s.title}
-                </h3>
-                <p className="text-xs text-muted">{s.desc}</p>
-              </div>
-
-              <div className="flex gap-2 flex-wrap">
-                <span className="text-xs font-medium px-2 py-1 rounded bg-light-green text-mid-green">
-                  {s.steps} steps
-                </span>
-                <span className="text-xs font-medium px-2 py-1 rounded bg-off-white text-muted">
-                  All {s.provinces} provinces
-                </span>
-                <span className="text-xs font-medium px-2 py-1 rounded bg-light-green text-mid-green">
-                  Checklist output
-                </span>
-              </div>
-
-              <button
-                onClick={() =>
-                  !s.locked && setSelectedSituation(s.slug)
-                }
-                className={`py-2.5 px-4 rounded-lg text-sm font-semibold transition-colors ${
-                  s.locked
-                    ? "bg-off-white text-muted cursor-not-allowed"
-                    : "bg-mid-green text-white hover:bg-mid-green/90"
+          {WALKTHROUGHS.map((w) => {
+            const isLocked = w.locked && plan === "free";
+            return (
+              <div
+                key={w.slug}
+                className={`bg-white rounded-lg border border-border-color p-6 flex flex-col gap-4 ${
+                  isLocked ? "opacity-80" : ""
                 }`}
               >
-                {s.locked
-                  ? "🔒 Upgrade to Access"
-                  : "Start — Ontario"}
-              </button>
-            </div>
-          ))}
+                <div className="text-4xl">{w.icon}</div>
+                <div>
+                  <h3 className="text-lg font-semibold text-dark-green mb-1">{w.title}</h3>
+                  <p className="text-xs text-muted">{w.desc}</p>
+                </div>
+                <div className="flex gap-2 flex-wrap">
+                  <span className="text-xs font-medium px-2 py-1 rounded bg-light-green text-mid-green">
+                    {w.steps.length} steps
+                  </span>
+                  <span className="text-xs font-medium px-2 py-1 rounded bg-off-white text-muted">
+                    All 13 provinces
+                  </span>
+                  <span className="text-xs font-medium px-2 py-1 rounded bg-light-green text-mid-green">
+                    Statute citations
+                  </span>
+                </div>
+                <button
+                  onClick={() => handleSelect(w.slug, w.locked)}
+                  disabled={upgrading}
+                  className={`py-2.5 px-4 rounded-lg text-sm font-semibold transition-colors ${
+                    isLocked
+                      ? "bg-off-white text-muted hover:bg-light-green hover:text-mid-green cursor-pointer"
+                      : "bg-mid-green text-white hover:bg-mid-green/90"
+                  }`}
+                >
+                  {isLocked ? "🔒 Upgrade to Access" : `Start — ${province}`}
+                </button>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>
