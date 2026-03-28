@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
+import Link from 'next/link';
 import { ArrowRight, Sparkles, Shield, Zap, BookOpen, Users, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -239,9 +240,11 @@ export function CTASection() {
             Join Canadian HR teams reducing compliance risk
           </p>
           <div className="flex flex-wrap gap-4 justify-center">
-            <Button size="lg" className="bg-white text-[#2C5F4F] hover:bg-[#F8F7F4] h-12 px-8 font-semibold">
-              Try free — no credit card
-              <ArrowRight className="w-4 h-4 ml-2" />
+            <Button asChild size="lg" className="bg-white text-[#2C5F4F] hover:bg-[#F8F7F4] h-12 px-8 font-semibold">
+              <Link href="/signup">
+                Try free — no credit card
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Link>
             </Button>
             <a href="/contact" className="inline-flex">
               <Button size="lg" className="bg-white/20 hover:bg-white/30 text-white border border-white/40 h-12 px-8 font-semibold transition-all">

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Menu, X } from 'lucide-react';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 
 interface NavigationProps {
@@ -50,11 +51,11 @@ export function Navigation({ onLandingPage = false }: NavigationProps) {
         </div>
 
         <div className="hidden md:flex items-center gap-4">
-          <Button variant="ghost" className="text-[#1C1C1E]">
-            Sign in
+          <Button asChild variant="ghost" className="text-[#1C1C1E]">
+            <Link href="/login">Sign in</Link>
           </Button>
-          <Button className="bg-[#3A8A6C] hover:bg-[#2C5F4F] text-white">
-            Start free
+          <Button asChild className="bg-[#3A8A6C] hover:bg-[#2C5F4F] text-white">
+            <Link href="/signup">Start free</Link>
           </Button>
         </div>
 
@@ -82,11 +83,11 @@ export function Navigation({ onLandingPage = false }: NavigationProps) {
               </a>
             ))}
             <div className="space-y-2 pt-4 border-t border-[#E8E6E1]">
-              <Button variant="ghost" className="w-full justify-start text-[#1C1C1E]">
-                Sign in
+              <Button asChild variant="ghost" className="w-full justify-start text-[#1C1C1E]">
+                <Link href="/login">Sign in</Link>
               </Button>
-              <Button className="w-full bg-[#3A8A6C] hover:bg-[#2C5F4F] text-white">
-                Start free
+              <Button asChild className="w-full bg-[#3A8A6C] hover:bg-[#2C5F4F] text-white">
+                <Link href="/signup">Start free</Link>
               </Button>
             </div>
           </div>

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
-import { Play, Menu } from 'lucide-react';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { AnimatedChatDemo } from './utils';
@@ -95,8 +95,8 @@ export function HeroSection() {
               transition={{ duration: 0.4, delay: 0.7, ease: [0.16, 1, 0.3, 1] }}
               className="flex flex-wrap gap-4"
             >
-              <Button size="lg" className="bg-[#3A8A6C] hover:bg-[#2C5F4F] text-white h-12 px-8 font-semibold">
-                Start free — no credit card
+              <Button asChild size="lg" className="bg-[#3A8A6C] hover:bg-[#2C5F4F] text-white h-12 px-8 font-semibold">
+                <Link href="/signup">Start free — no credit card</Link>
               </Button>
               <a href="/contact" className="inline-flex">
                 <Button size="lg" className="bg-white/15 hover:bg-white/25 text-white border border-white/30 h-12 px-8 font-semibold transition-all">
