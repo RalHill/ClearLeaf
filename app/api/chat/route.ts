@@ -4,6 +4,8 @@ import { sql } from "@vercel/postgres";
 import { z } from "zod";
 import { selectModel, OPENROUTER_BASE } from "@/lib/ai/chat";
 import { createSystemPrompt } from "@/lib/ai/prompts";
+import { extractAndValidateInput, formatExtractedInputAsContext } from "@/lib/ai/input-extractor";
+import { retrieveWithFallback, formatChunksAsContext } from "@/lib/ai/retrieval";
 
 const chatRequestSchema = z.object({
   message: z.string().min(1).max(2000),
@@ -84,9 +86,69 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // ── Real AI mode ─────────────────────────────────────────────────────────
+    // ── Step 1: Extract & validate input facts ───────────────────────────────
+    const extractedInput = extractAndValidateInput(message);
+    const effectiveProvince = extractedInput.province || province;
+
+    // Return early with warning if critical tenure info missing for termination questions
+    if (
+      !extractedInput.tenure &&
+      (message.toLowerCase().includes("terminate") ||
+        message.toLowerCase().includes("fire") ||
+        message.toLowerCase().includes("severance") ||
+        message.toLowerCase().includes("laid off"))
+    ) {
+      return NextResponse.json({
+        error: "missing_context",
+        message: "I need to know: How long has the employee worked for you? This is critical for calculating notice periods and severance eligibility.",
+        warnings: extractedInput.warnings,
+        extractedInput: {
+          tenure: extractedInput.tenure,
+          employerSize: extractedInput.employerSize,
+          province: effectiveProvince,
+          topic: extractedInput.topic,
+          confidence: extractedInput.confidence,
+        },
+      }, { status: 400 });
+    }
+
+    // ── Step 2: Retrieve with fallback & quality check ──────────────────────
+    const { chunks, confidence: retrievalConfidence, warning: retrievalWarning, matchedCount } =
+      await retrieveWithFallback(message, effectiveProvince, 0.3);
+
+    // If retrieval returned 0 results, provide fallback message
+    if (matchedCount === 0) {
+      return NextResponse.json({
+        message:
+          "I don't have verified statute text for this in my knowledge base. This could mean:\n1. Your situation involves an uncommon fact pattern\n2. The rule varies significantly by province\n3. It requires specialized legal expertise\n\nPlease consult with a Canadian employment lawyer for your specific situation.",
+        confidence: "low",
+        sources: [],
+        warning: retrievalWarning,
+        extractedInput: {
+          tenure: extractedInput.tenure,
+          employerSize: extractedInput.employerSize,
+          province: effectiveProvince,
+          topic: extractedInput.topic,
+          confidence: extractedInput.confidence,
+        },
+      });
+    }
+
+    // ── Step 3: Build enhanced system prompt with context injection ──────────
+    const contextStr = formatChunksAsContext(chunks);
+    const inputContext = formatExtractedInputAsContext(extractedInput);
+    
+    const enhancedContext = `
+KNOWLEDGE BASE CONTEXT (verified statutes):
+${contextStr}
+
+${inputContext}
+`;
+
+    const systemPrompt = createSystemPrompt(effectiveProvince, enhancedContext);
+
+    // ── Step 4: Call OpenRouter with guardrailed prompt ─────────────────────
     const model = selectModel({ isDevMode: process.env.NODE_ENV === "development" });
-    const systemPrompt = createSystemPrompt(province);
 
     const messages = [
       { role: "system" as const, content: systemPrompt },
@@ -104,8 +166,8 @@ export async function POST(request: NextRequest) {
       },
       body: JSON.stringify({
         model,
-        temperature: 0.1,
-        max_tokens: 1200,
+        temperature: 0.1, // Lower temp for legal precision
+        max_tokens: 1500,
         stream: false,
         messages,
       }),
@@ -135,23 +197,40 @@ export async function POST(request: NextRequest) {
       Promise.all([
         sql`
           INSERT INTO chat_messages (user_id, role, content, province, confidence_level)
-          VALUES (${userId}, 'user', ${message}, ${province}, NULL)
+          VALUES (${userId}, 'user', ${message}, ${effectiveProvince}, NULL)
         `,
         sql`
           INSERT INTO chat_messages (user_id, role, content, province, confidence_level)
-          VALUES (${userId}, 'assistant', ${cleanMessage}, ${province}, ${confidence})
+          VALUES (${userId}, 'assistant', ${cleanMessage}, ${effectiveProvince}, ${confidence})
         `,
         sql`
           INSERT INTO usage_records (user_id, action_type, province)
-          VALUES (${userId}, 'chat_query', ${province})
+          VALUES (${userId}, 'chat_query', ${effectiveProvince})
         `,
       ]).catch((err) => console.error("DB persist error:", err));
     }
 
     return NextResponse.json({
       message: cleanMessage,
-      sources: [],
+      sources: chunks.map((c) => ({
+        title: c.source_title,
+        section: c.article_number || "General",
+        province: c.province,
+        relevance: c.similarity,
+      })),
       confidence,
+      extractedInput: {
+        tenure: extractedInput.tenure,
+        employerSize: extractedInput.employerSize,
+        province: effectiveProvince,
+        topic: extractedInput.topic,
+        confidence: extractedInput.confidence,
+      },
+      retrievalInfo: {
+        matchedChunks: matchedCount,
+        retrievalConfidence,
+        warning: retrievalWarning,
+      },
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
