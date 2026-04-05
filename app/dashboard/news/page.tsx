@@ -115,7 +115,17 @@ export default function NewsPage() {
       : NEWS_ITEMS.filter((item) => selectedTopics.includes(item.topic));
 
   return (
-    <div className="flex-1 overflow-y-auto px-6 py-6">
+    <div className="flex flex-col h-full overflow-hidden">
+      {/* Disclaimer banner */}
+      <div className="bg-blue-50 border-b border-blue-200 px-6 py-3 flex-shrink-0">
+        <div className="max-w-4xl mx-auto">
+          <p className="text-sm text-blue-900">
+            <span className="font-semibold">Note:</span> These are illustrative example news items for reference. For live regulatory updates, consult official government sources or use ClearLeaf's AI Chat to ask about the latest rules in your jurisdiction.
+          </p>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-6 py-6">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-6">
@@ -252,6 +262,7 @@ export default function NewsPage() {
           </div>
         )}
       </div>
+    </div>
     </div>
   );
 }

@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
         : `No specific statute chunks found for ${policyType} in ${province}. Apply general Canadian employment law standards.`;
 
     const systemPrompt = buildComplianceSystemPrompt(province, policyType, knowledgeContext);
-    const model = selectModel({ isDevMode: process.env.NODE_ENV === "development" });
+    const model = selectModel({ });
 
     const aiRes = await fetch(`${OPENROUTER_BASE}/chat/completions`, {
       method: "POST",

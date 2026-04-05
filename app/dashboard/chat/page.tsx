@@ -2,72 +2,18 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { Send, ThumbsDown } from "lucide-react";
+import { useDashboardProvince } from "@/components/dashboard/dashboard-province-context";
 
 interface Message {
   role: "user" | "assistant";
   text: string;
   source?: string | null;
   confidence?: "high" | "medium" | "low" | null;
+  sources?: Array<{ title: string; section: string; province: string; relevance?: number }>;
 }
 
-const CHAT_SAMPLES = [
-  {
-    q: "Can I terminate a 6-year employee in Ontario without cause? What's my exposure?",
-    a: "Yes, you can terminate without cause at any time in Ontario. Your statutory minimum notice under the ESA for 6 years of service is 6 weeks. However, the real exposure is common law reasonable notice — courts typically award 1 month per year of service for mid-level employees, putting your risk at 5–7 months of base salary plus continuation of benefits. If the employee earns over $35,000 annually, severance pay under the ESA may also apply (1 week per year, capped at 26 weeks), but only if your payroll exceeds $2.5M.",
-    source: "Ontario ESA, s.57 (notice) and s.64 (severance); Honda Canada Inc. v. Keays, 2008 SCC 39",
-    confidence: "high",
-  },
-  {
-    q: "What does Quebec law say about psychological harassment?",
-    a: "Under Article 81.18 of the Act Respecting Labour Standards (ARLS), psychological harassment in Quebec is defined as any vexatious behaviour — repeated conduct, verbal comments, actions, or gestures — that is hostile or unwanted, affecting an employee's dignity or psychological integrity, and resulting in a harmful work environment. Employers have a legal obligation to prevent and stop psychological harassment. If a complaint is received, you must conduct an investigation within 60 days under the 2026 CNESST guidelines and take reasonable action to prevent recurrence.",
-    source: "Loi sur les normes du travail, art. 81.18–81.20; CNESST Directive 2026-02",
-    confidence: "high",
-  },
-  {
-    q: "What about parental leave eligibility?",
-    a: "To qualify for parental leave in Ontario, an employee must have: (1) completed 12 consecutive months of employment with the same employer AND (2) worked 1,250 hours in the past 12 months. If they don't meet both criteria, they're not eligible. Part-time employees must have logged the required hours.",
-    source: "ESA s.35 (parental leave requirements)",
-    confidence: "high",
-  },
-  {
-    q: "What are the rules for vacation entitlement in BC?",
-    a: "In British Columbia, employees are entitled to a minimum of 2 weeks (10 business days) of vacation per year after 5 years of employment. In their first 5 years, they receive 2 weeks starting year 1. Vacation pay is calculated as 4% of gross wages, or an employer can provide 2 weeks of unpaid time off plus 4% pay. Vacation must be scheduled and taken within 2 years of when it's earned, unless the employee agrees to carryover (capped at 2 weeks).",
-    source: "BC Employment Standards Act, s.58–62",
-    confidence: "high",
-  },
-  {
-    q: "Can an employer require an employee to sign a non-compete agreement in Alberta?",
-    a: "Yes, Alberta allows non-compete agreements, but they are subject to reasonableness testing. A non-compete is enforceable only if it is: (1) reasonable in duration (typically 1–2 years is acceptable), (2) reasonable in geographic scope (limited to where the business operates), and (3) reasonable in scope of activity (limited to the employer's legitimate interests). Overly broad restrictions may be unenforceable. Courts will generally enforce narrowly tailored non-competes that protect legitimate business interests.",
-    source: "Alberta common law; Lysko v. Braley, 2006 AB 206",
-    confidence: "medium",
-  },
-  {
-    q: "What is the statutory notice period for termination in Federal jurisdiction?",
-    a: "Under the Canada Labour Code Part II, an employer must provide written notice of termination of employment: (1) two weeks in advance if the employee has completed 3 consecutive months of employment, or (2) if the employee has completed 2 or more years of continuous employment, notice equal to 2 weeks plus 1 week for each additional year of employment, up to a maximum of 8 weeks. Alternatively, the employer may pay wages in lieu of notice.",
-    source: "Canada Labour Code, Part II, s.230",
-    confidence: "high",
-  },
-  {
-    q: "What does accommodation to the point of undue hardship mean?",
-    a: "Accommodation to the point of undue hardship is a legal duty in all Canadian jurisdictions. An employer must take steps to accommodate an employee's needs (related to protected grounds like disability, religion, or family status) unless doing so would cause the employer undue hardship. Undue hardship is determined by considering: (1) cost, (2) health and safety risks, and (3) operational requirements. The burden of proving undue hardship rests with the employer, and they must show substantive evidence, not mere speculation.",
-    source: "Canadian Human Rights Act, s.7; Meiorin v. Doig Lake First Nation, [1997] 3 SCR 785",
-    confidence: "high",
-  },
-  {
-    q: "How long must employment records be kept in Ontario?",
-    a: "In Ontario, employers must keep employment records for at least 3 years. These records must include: (1) hours worked, (2) wages paid, (3) deductions, (4) taxable benefits, and (5) vacation tracking. Records can be kept in electronic or paper format, but must be accessible and available for inspection by the Ministry of Labour on request.",
-    source: "Ontario ESA, s.15 (record-keeping requirements)",
-    confidence: "high",
-  },
-  {
-    q: "What is the difference between wrongful dismissal and just cause termination?",
-    a: "Just cause termination means an employer can terminate an employee without notice or severance for serious misconduct (theft, violence, gross insubordination, willful disobedience, or incompetence). Wrongful dismissal occurs when an employer terminates without cause and fails to provide adequate notice or pay in lieu. The employer bears the burden of proving just cause, and the standard is high — 'just cause' is narrowly defined and courts rarely accept vague allegations.",
-    source: "Common law; Keays v. Honda of Canada Mfg., 2008 SCC 39",
-    confidence: "high",
-  },
-];
-
 export default function ChatPage() {
+  const { province } = useDashboardProvince();
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
@@ -79,7 +25,7 @@ export default function ChatPage() {
 
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
-  const [sampleIndex, setSampleIndex] = useState(0);
+  const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -87,29 +33,82 @@ export default function ChatPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isTyping]);
 
-  const sendMessage = () => {
+  const sendMessage = async () => {
     if (!input.trim()) return;
 
     const userMsg: Message = { role: "user", text: input };
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
     setIsTyping(true);
+    setError(null);
 
-    // Simulate API delay
-    setTimeout(() => {
-      const sample = CHAT_SAMPLES[sampleIndex % CHAT_SAMPLES.length];
-      setSampleIndex((i) => i + 1);
+    try {
+      // Build conversation history from previous messages (last 10 turns)
+      const conversationHistory = messages
+        .slice(-10)
+        .map((msg) => ({
+          role: msg.role,
+          content: msg.text,
+        }));
+
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: input,
+          province,
+          conversationHistory,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        
+        // Handle 400 missing_context gracefully
+        if (response.status === 400 && data.error === "missing_context") {
+          setMessages((prev) => [
+            ...prev,
+            {
+              role: "assistant",
+              text: data.message,
+              confidence: "low",
+              source: null,
+            },
+          ]);
+          setIsTyping(false);
+          return;
+        }
+
+        throw new Error(data.error || "AI service error");
+      }
+
+      const result = await response.json();
+
       setMessages((prev) => [
         ...prev,
         {
           role: "assistant",
-          text: sample.a,
-          source: sample.source,
-          confidence: sample.confidence as "high" | "medium" | "low",
+          text: result.message,
+          source: result.sources?.[0]?.title || null,
+          confidence: result.confidence,
+          sources: result.sources,
         },
       ]);
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : "Network error";
+      setError(errorMsg);
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          text: `Sorry, I encountered an error: ${errorMsg}. Please try again.`,
+          confidence: null,
+          source: null,
+        },
+      ]);
+    } finally {
       setIsTyping(false);
-    }, 1200);
+    }
   };
 
   const confidenceBadge = (
@@ -143,12 +142,17 @@ export default function ChatPage() {
       <div className="bg-light-green border-b border-border-color px-6 py-2 flex items-center gap-3 text-xs text-mid-green flex-shrink-0">
         <span>🗺️</span>
         <span>
-          Showing results for <strong>Ontario</strong> jurisdiction ·
-          Federally regulated employer?
+          Showing results for <strong>{province}</strong> jurisdiction ·
+          {province !== "Federal" && "Federally regulated employer?"}
         </span>
-        <button className="border border-mid-green rounded px-2 py-1 text-xs hover:bg-white/50 transition-colors">
-          Switch to Federal
-        </button>
+        {province !== "Federal" && (
+          <button 
+            onClick={() => {}} 
+            className="border border-mid-green rounded px-2 py-1 text-xs hover:bg-white/50 transition-colors"
+          >
+            Switch to Federal
+          </button>
+        )}
         <span className="ml-auto text-accent-green">
           All responses include legal source citations
         </span>
@@ -178,7 +182,7 @@ export default function ChatPage() {
                     ClearLeaf
                   </span>
                   <span className="text-xs text-muted font-light">
-                    Ontario · Employment Standards
+                    {province} · Employment Standards
                   </span>
                 </div>
 

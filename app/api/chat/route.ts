@@ -28,6 +28,14 @@ export async function POST(request: NextRequest) {
 
     const isDemoMode = !process.env.OPENROUTER_API_KEY;
 
+    // In production, fail gracefully if no API key is set
+    if (isDemoMode && process.env.NODE_ENV === "production") {
+      return NextResponse.json(
+        { error: "AI service not configured" },
+        { status: 503 }
+      );
+    }
+
     // Auth removed for testing — no rate limiting, no user required
     const userId: string | null = null;
 
@@ -148,7 +156,7 @@ ${inputContext}
     const systemPrompt = createSystemPrompt(effectiveProvince, enhancedContext);
 
     // ── Step 4: Call OpenRouter with guardrailed prompt ─────────────────────
-    const model = selectModel({ isDevMode: process.env.NODE_ENV === "development" });
+    const model = selectModel({ });
 
     const messages = [
       { role: "system" as const, content: systemPrompt },

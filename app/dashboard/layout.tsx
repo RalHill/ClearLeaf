@@ -4,6 +4,7 @@ import React, { useState, useEffect, ReactNode, useCallback } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Menu, X } from "lucide-react";
+import { DashboardProvinceProvider, useDashboardProvince } from "@/components/dashboard/dashboard-province-context";
 
 const PROVINCES = [
   { code: "ON", name: "Ontario" },
@@ -33,11 +34,11 @@ interface DashboardLayoutProps {
   children: ReactNode;
 }
 
-export default function DashboardLayout({ children }: DashboardLayoutProps) {
+function DashboardLayoutContent({ children }: DashboardLayoutProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const { province, setProvince } = useDashboardProvince();
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [province, setProvince] = useState("ON");
   const [showProvinceDropdown, setShowProvinceDropdown] = useState(false);
   const [planStatus, setPlanStatus] = useState<PlanStatus>({
     plan: "free",
@@ -302,5 +303,13 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         {children}
       </main>
     </div>
+  );
+}
+
+export default function DashboardLayout({ children }: DashboardLayoutProps) {
+  return (
+    <DashboardProvinceProvider>
+      <DashboardLayoutContent>{children}</DashboardLayoutContent>
+    </DashboardProvinceProvider>
   );
 }
