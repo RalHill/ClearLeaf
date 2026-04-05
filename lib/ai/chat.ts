@@ -5,8 +5,8 @@ export interface SelectModelContext {
 }
 
 // Claude 4.5 Haiku as default model for all scenarios
-export const OPENROUTER_MODEL_DEFAULT = "anthropic/claude-4-5-haiku";
-export const OPENROUTER_MODEL_ESCALATION = "anthropic/claude-sonnet-4-5";
+export const OPENROUTER_MODEL_DEFAULT = "anthropic/claude-haiku-4.5";
+export const OPENROUTER_MODEL_ESCALATION = "anthropic/claude-sonnet-4.5";
 
 // Optional environment override for model selection
 export function selectModel(context: SelectModelContext): string {
