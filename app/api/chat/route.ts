@@ -26,15 +26,22 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { message, province, conversationHistory } = chatRequestSchema.parse(body);
 
-    const isDemoMode = !process.env.OPENROUTER_API_KEY;
+    // Demo mode: only activate if explicitly DEMO_MODE=true
+    const isDemoMode = process.env.DEMO_MODE === "true";
 
-    // In production, fail gracefully if no API key is set
-    if (isDemoMode && process.env.NODE_ENV === "production") {
-      return NextResponse.json(
-        { error: "AI service not configured" },
-        { status: 503 }
-      );
+    // In production, require OPENROUTER_API_KEY
+    if (!process.env.OPENROUTER_API_KEY) {
+      console.error("[CHAT_API] CRITICAL: OPENROUTER_API_KEY is not set in environment");
+      if (process.env.NODE_ENV === "production") {
+        return NextResponse.json(
+          { error: "AI service not configured. Missing API key." },
+          { status: 503 }
+        );
+      }
     }
+
+    // Log request details for debugging
+    console.log(`[CHAT_API] New request | province=${province} | demoMode=${isDemoMode} | model=claude-4-5-haiku`);
 
     // Auth removed for testing — no rate limiting, no user required
     const userId: string | null = null;
@@ -124,8 +131,11 @@ export async function POST(request: NextRequest) {
     const { chunks, confidence: retrievalConfidence, warning: retrievalWarning, matchedCount } =
       await retrieveWithFallback(message, effectiveProvince, 0.3);
 
+    console.log(`[CHAT_API] Knowledge base retrieval | matched=${matchedCount} | confidence=${retrievalConfidence} | warning=${retrievalWarning || "none"}`);
+
     // If retrieval returned 0 results, provide fallback message
     if (matchedCount === 0) {
+      console.warn(`[CHAT_API] Empty knowledge base result for province=${effectiveProvince}`);
       return NextResponse.json({
         message:
           "I don't have verified statute text for this in my knowledge base. This could mean:\n1. Your situation involves an uncommon fact pattern\n2. The rule varies significantly by province\n3. It requires specialized legal expertise\n\nPlease consult with a Canadian employment lawyer for your specific situation.",
@@ -157,6 +167,7 @@ ${inputContext}
 
     // ── Step 4: Call OpenRouter with guardrailed prompt ─────────────────────
     const model = selectModel({ });
+    console.log(`[CHAT_API] Selected model: ${model}`);
 
     const messages = [
       { role: "system" as const, content: systemPrompt },
@@ -164,6 +175,8 @@ ${inputContext}
       { role: "user" as const, content: message },
     ];
 
+    console.log(`[CHAT_API] Calling OpenRouter | model=${model} | messageCount=${messages.length} | temperature=0.1`);
+    
     const aiRes = await fetch(`${OPENROUTER_BASE}/chat/completions`, {
       method: "POST",
       headers: {
@@ -183,7 +196,7 @@ ${inputContext}
 
     if (!aiRes.ok) {
       const errText = await aiRes.text();
-      console.error("OpenRouter error:", aiRes.status, errText);
+      console.error(`[CHAT_API] OpenRouter error: ${aiRes.status} | ${errText}`);
       return NextResponse.json(
         { error: "AI service unavailable. Please try again." },
         { status: 502 }
@@ -191,6 +204,7 @@ ${inputContext}
     }
 
     const aiData = await aiRes.json();
+    console.log(`[CHAT_API] OpenRouter response OK | status=${aiRes.status} | usage=${JSON.stringify(aiData.usage || {})}`);
     const rawContent: string = aiData.choices?.[0]?.message?.content ?? "";
 
     // Extract confidence level from response
