@@ -119,9 +119,15 @@ export function extractAndValidateInput(message: string): ExtractedInput {
 
   // Extract tenure (years of service)
   let tenure: number | undefined;
-  const tenureMatch = lowerMessage.match(
-    /(\d+)\s*(?:year|yr)s?\s*(?:of\s*)?(?:service|tenure|employment|experience|employment)/i
-  );
+  const tenureMatch =
+    // "3-year employee", "3 year employee", "3 years of service/employment/experience"
+    lowerMessage.match(
+      /(\d+)\s*[-]?\s*(?:year|yr)s?\s*(?:of\s*)?(?:service|tenure|employment|experience|employee)/i
+    ) ||
+    // "for 3 years", "over 3 years", "past 3 years", "about 3 years"
+    lowerMessage.match(
+      /(?:for|past|over|about|approximately)\s+(\d+)\s*(?:year|yr)s?/i
+    );
   if (tenureMatch) {
     tenure = parseInt(tenureMatch[1], 10);
   }

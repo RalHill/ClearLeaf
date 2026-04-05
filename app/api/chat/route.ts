@@ -128,8 +128,20 @@ export async function POST(request: NextRequest) {
     }
 
     // ── Step 2: Retrieve with fallback & quality check ──────────────────────
+    // For short follow-up messages (e.g. "3 years"), augment the query with
+    // recent conversation history so the retrieval has enough context to match.
+    const retrievalQuery =
+      message.trim().split(/\s+/).length <= 5 && conversationHistory.length > 0
+        ? conversationHistory
+            .slice(-4)
+            .map((m) => m.content)
+            .join(" ") +
+          " " +
+          message
+        : message;
+
     const { chunks, confidence: retrievalConfidence, warning: retrievalWarning, matchedCount } =
-      await retrieveWithFallback(message, effectiveProvince, 0.3);
+      await retrieveWithFallback(retrievalQuery, effectiveProvince, 0.3);
 
     console.log(`[CHAT_API] Knowledge base retrieval | matched=${matchedCount} | confidence=${retrievalConfidence} | warning=${retrievalWarning || "none"}`);
 
