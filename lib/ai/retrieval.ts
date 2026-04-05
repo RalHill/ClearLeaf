@@ -30,41 +30,58 @@ export async function retrieveRelevantChunks(
 ) {
   try {
     // Use full-text search (tsquery) instead of vector embeddings
-    // This works without OpenAI embeddings
+    // JOIN knowledge_sources to get the title (chunks only store source_id)
+    // Convert AND-query to OR-query for the WHERE clause so that chunks
+    // matching ANY key term are returned (individual statute chunks cover
+    // one topic each, so AND across a full sentence always returns 0).
+    // ts_rank with the strict AND-query is still used for ordering.
     const result = await sql`
-      SELECT 
-        id,
-        content,
-        section_title,
-        article_number,
-        source_title,
-        province,
-        topic_tags,
-        ts_rank(to_tsvector('english', content), plainto_tsquery('english', ${query})) as similarity
-      FROM knowledge_chunks
-      WHERE province = ${province} 
-        AND to_tsvector('english', content) @@ plainto_tsquery('english', ${query})
-      ORDER BY similarity DESC, ts_rank_cd(to_tsvector('english', content), plainto_tsquery('english', ${query})) DESC
+      SELECT * FROM (
+        SELECT DISTINCT ON (kc.article_number, kc.section_title)
+          kc.id,
+          kc.content,
+          kc.section_title,
+          kc.article_number,
+          ks.title AS source_title,
+          kc.province,
+          kc.topic_tags,
+          ts_rank(kc.search_vector, plainto_tsquery('english', ${query})) as similarity
+        FROM knowledge_chunks kc
+        JOIN knowledge_sources ks ON ks.id = kc.source_id
+        WHERE kc.province = ${province}
+          AND kc.search_vector @@ to_tsquery(
+            'english',
+            regexp_replace(
+              plainto_tsquery('english', ${query})::text,
+              ' & ',
+              ' | ',
+              'g'
+            )
+          )
+        ORDER BY kc.article_number, kc.section_title, similarity DESC
+      ) deduped
+      ORDER BY similarity DESC
       LIMIT ${matchCount}
     `;
 
     return (result.rows ?? []) as RetrievedChunk[];
   } catch (error) {
     console.error("Failed to retrieve chunks via full-text search:", error);
-    // Fallback: return all chunks for the province if search fails
+    // Fallback: return top chunks for the province without text filter
     try {
       const fallbackResult = await sql`
-        SELECT 
-          id,
-          content,
-          section_title,
-          article_number,
-          source_title,
-          province,
-          topic_tags,
+        SELECT
+          kc.id,
+          kc.content,
+          kc.section_title,
+          kc.article_number,
+          ks.title AS source_title,
+          kc.province,
+          kc.topic_tags,
           0.3 as similarity
-        FROM knowledge_chunks
-        WHERE province = ${province}
+        FROM knowledge_chunks kc
+        JOIN knowledge_sources ks ON ks.id = kc.source_id
+        WHERE kc.province = ${province}
         LIMIT ${matchCount}
       `;
       return (fallbackResult.rows ?? []) as RetrievedChunk[];
