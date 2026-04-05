@@ -7,7 +7,7 @@ import { HeroSection } from '@/components/landing/HeroSection';
 import { FeaturesSection } from '@/components/landing/FeaturesSection';
 import { CustomerCarousel } from '@/components/landing/CustomerCarousel';
 import { PricingSection } from '@/components/landing/PricingSection';
-import { HowItWorksSection, NeverMissLegislativeChangeSection } from '@/components/landing/AboutSection';
+import { HowItWorksSection, ScenarioQuestionsSection } from '@/components/landing/AboutSection';
 import { StatsSection, FeaturesHighlights, FAQSection, CTASection, Footer } from '@/components/landing/SectionsGroup';
 
 export default function ClearLeafLanding() {
@@ -25,7 +25,7 @@ export default function ClearLeafLanding() {
         <FeaturesHighlights />
         <PricingSection />
         <HowItWorksSection />
-        <NeverMissLegislativeChangeSection />
+        <ScenarioQuestionsSection />
         <FAQSection />
         <CTASection />
       </main>
