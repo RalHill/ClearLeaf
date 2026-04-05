@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Send, ThumbsDown } from "lucide-react";
 import { useDashboardProvince } from "@/components/dashboard/dashboard-province-context";
+import ReactMarkdown from "react-markdown";
 
 interface Message {
   role: "user" | "assistant";
@@ -186,8 +187,8 @@ export default function ChatPage() {
                   </span>
                 </div>
 
-                <div className="bg-white border border-border-color rounded-tl-md rounded-tr-2xl rounded-br-2xl rounded-bl-2xl p-4 text-sm leading-relaxed">
-                  {msg.text}
+                <div className="bg-white border border-border-color rounded-tl-md rounded-tr-2xl rounded-br-2xl rounded-bl-2xl p-4 text-sm leading-relaxed prose prose-sm max-w-none prose-headings:text-mid-green prose-headings:font-semibold prose-strong:text-gray-800 prose-a:text-mid-green prose-ul:my-1 prose-ol:my-1 prose-li:my-0.5 prose-p:my-1.5 prose-table:text-xs">
+                  <ReactMarkdown>{msg.text}</ReactMarkdown>
                 </div>
 
                 {msg.source && (

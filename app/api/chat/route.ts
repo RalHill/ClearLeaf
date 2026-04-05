@@ -223,8 +223,10 @@ ${inputContext}
     const confidenceMatch = rawContent.match(/CONFIDENCE:\s*(high|medium|low)/i);
     const confidence = (confidenceMatch?.[1]?.toLowerCase() ?? "medium") as "high" | "medium" | "low";
 
-    // Strip the CONFIDENCE line from the displayed message
-    const cleanMessage = rawContent.replace(/\n?CONFIDENCE:\s*(high|medium|low)\s*$/i, "").trim();
+    // Strip the CONFIDENCE line (plain or bolded) from the displayed message
+    const cleanMessage = rawContent
+      .replace(/\n?\*?\*?CONFIDENCE:\s*(high|medium|low)\*?\*?\s*$/i, "")
+      .trim();
 
     // Persist to Neon (non-blocking)
     if (userId) {
