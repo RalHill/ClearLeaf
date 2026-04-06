@@ -223,9 +223,9 @@ ${inputContext}
     const confidenceMatch = rawContent.match(/CONFIDENCE:\s*(high|medium|low)/i);
     const confidence = (confidenceMatch?.[1]?.toLowerCase() ?? "medium") as "high" | "medium" | "low";
 
-    // Strip the CONFIDENCE line (plain or bolded) from the displayed message
+    // Strip the CONFIDENCE line wherever it appears (plain or bolded)
     const cleanMessage = rawContent
-      .replace(/\n?\*?\*?CONFIDENCE:\s*(high|medium|low)\*?\*?\s*$/i, "")
+      .replace(/\n?\*?\*?CONFIDENCE:\s*(high|medium|low)\*?\*?\s*\n?/gi, "\n")
       .trim();
 
     // Persist to Neon (non-blocking)
