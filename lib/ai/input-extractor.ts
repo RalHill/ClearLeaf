@@ -6,7 +6,7 @@
 export interface ExtractedInput {
   tenure?: number; // years of service
   employerSize?: number; // payroll in millions
-  province: string; // 2-letter code (ON, BC, AB, QC, etc.)
+  province: string | undefined; // 2-letter code — undefined if not mentioned in message
   topic: string; // domain (termination, harassment, leave, overtime, etc.)
   confidence: "high" | "medium" | "low";
   warnings: string[]; // e.g., "Tenure not specified - assuming general info"
@@ -127,7 +127,9 @@ export function extractAndValidateInput(message: string): ExtractedInput {
     // "for 3 years", "over 3 years", "past 3 years", "about 3 years"
     lowerMessage.match(
       /(?:for|past|over|about|approximately)\s+(\d+)\s*(?:year|yr)s?/i
-    );
+    ) ||
+    // standalone "3 years" or "3 yrs" as the whole (or near-whole) message — follow-up answers
+    lowerMessage.match(/^(\d+)\s*(?:year|yr)s?\.?$/);
   if (tenureMatch) {
     tenure = parseInt(tenureMatch[1], 10);
   }
@@ -158,8 +160,9 @@ export function extractAndValidateInput(message: string): ExtractedInput {
     );
   }
 
-  // Extract province
-  let province = "ON"; // Default to Ontario
+  // Extract province — only set if explicitly mentioned in the message.
+  // If not found, return undefined so the caller uses the UI-selected province.
+  let province: string | undefined;
   let provinceFound = false;
 
   for (const [provName, provCode] of Object.entries(provinceMap)) {
@@ -171,7 +174,7 @@ export function extractAndValidateInput(message: string): ExtractedInput {
   }
 
   if (!provinceFound) {
-    warnings.push("Province not specified - assuming Ontario");
+    warnings.push("Province not specified - using selected jurisdiction");
   }
 
   // Extract topic/domain

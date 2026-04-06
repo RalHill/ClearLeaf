@@ -103,7 +103,8 @@ export async function POST(request: NextRequest) {
 
     // ── Step 1: Extract & validate input facts ───────────────────────────────
     const extractedInput = extractAndValidateInput(message);
-    const effectiveProvince = extractedInput.province || province;
+    // Prefer province explicitly mentioned in message; fall back to UI-selected province
+    const effectiveProvince = extractedInput.province ?? province;
 
     // Return early with warning if critical tenure info missing for termination questions
     if (
@@ -145,23 +146,11 @@ export async function POST(request: NextRequest) {
 
     console.log(`[CHAT_API] Knowledge base retrieval | matched=${matchedCount} | confidence=${retrievalConfidence} | warning=${retrievalWarning || "none"}`);
 
-    // If retrieval returned 0 results, provide fallback message
+    // If retrieval returned 0 results, still call the AI so the system prompt
+    // can handle out-of-scope questions with the correct refusal message.
+    // The AI is instructed not to answer if no context is provided.
     if (matchedCount === 0) {
-      console.warn(`[CHAT_API] Empty knowledge base result for province=${effectiveProvince}`);
-      return NextResponse.json({
-        message:
-          "I don't have verified statute text for this in my knowledge base. This could mean:\n1. Your situation involves an uncommon fact pattern\n2. The rule varies significantly by province\n3. It requires specialized legal expertise\n\nPlease consult with a Canadian employment lawyer for your specific situation.",
-        confidence: "low",
-        sources: [],
-        warning: retrievalWarning,
-        extractedInput: {
-          tenure: extractedInput.tenure,
-          employerSize: extractedInput.employerSize,
-          province: effectiveProvince,
-          topic: extractedInput.topic,
-          confidence: extractedInput.confidence,
-        },
-      });
+      console.warn(`[CHAT_API] Empty knowledge base result for province=${effectiveProvince} — passing to AI for scope check`);
     }
 
     // ── Step 3: Build enhanced system prompt with context injection ──────────
@@ -223,9 +212,10 @@ ${inputContext}
     const confidenceMatch = rawContent.match(/CONFIDENCE:\s*(high|medium|low)/i);
     const confidence = (confidenceMatch?.[1]?.toLowerCase() ?? "medium") as "high" | "medium" | "low";
 
-    // Strip the CONFIDENCE line wherever it appears (plain or bolded)
+    // Strip the CONFIDENCE token wherever it appears (plain or bolded)
     const cleanMessage = rawContent
-      .replace(/\n?\*?\*?CONFIDENCE:\s*(high|medium|low)\*?\*?\s*\n?/gi, "\n")
+      .replace(/\*{0,2}CONFIDENCE:\s*(high|medium|low)\*{0,2}/gi, "")
+      .replace(/\n{3,}/g, "\n\n") // collapse any resulting extra blank lines
       .trim();
 
     // Persist to Neon (non-blocking)
