@@ -182,12 +182,12 @@ export default function ChatPage() {
                   <span className="text-xs font-semibold text-mid-green">
                     ClearLeaf
                   </span>
-                  <span className="text-xs text-muted font-light">
+                  <span className="text-xs text-muted-foreground font-light">
                     {province} · Employment Standards
                   </span>
                 </div>
 
-                <div className="bg-white border border-border-color rounded-tl-md rounded-tr-2xl rounded-br-2xl rounded-bl-2xl p-4 text-sm leading-relaxed prose prose-sm max-w-none prose-headings:text-mid-green prose-headings:font-semibold prose-strong:text-gray-800 prose-a:text-mid-green prose-ul:my-1 prose-ol:my-1 prose-li:my-0.5 prose-p:my-1.5 prose-table:text-xs">
+                <div className="bg-white border border-border-color rounded-tl-md rounded-tr-2xl rounded-br-2xl rounded-bl-2xl p-4 text-sm leading-relaxed prose prose-sm max-w-none prose-headings:text-mid-green prose-headings:font-semibold prose-strong:text-gray-800 prose-a:text-mid-green prose-ul:my-1 prose-ol:my-1 prose-li:my-0.5 prose-p:my-1.5 prose-table:text-xs prose-pre:bg-slate-100 prose-pre:text-slate-800 prose-code:text-mid-green prose-code:bg-light-green prose-code:px-1 prose-code:rounded prose-code:before:content-none prose-code:after:content-none">
                   <ReactMarkdown>{msg.text}</ReactMarkdown>
                 </div>
 
@@ -247,7 +247,7 @@ export default function ChatPage() {
                 {msg.source && (
                   <div className="flex items-center gap-2 pt-1">
                     <button className="p-1 hover:bg-light-green rounded transition-colors">
-                      <ThumbsDown size={14} className="text-muted" />
+                      <ThumbsDown size={14} className="text-muted-foreground" />
                     </button>
                   </div>
                 )}
@@ -299,7 +299,7 @@ export default function ChatPage() {
               rows={2}
               className="bg-transparent border-none focus:outline-none resize-none text-sm font-dm"
             />
-            <div className="flex items-center gap-2 text-xs text-muted">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <span>Suggestions:</span>
               <button
                 onClick={() => setInput("Can I terminate an employee without cause?")}
@@ -331,11 +331,11 @@ export default function ChatPage() {
           >
             <Send
               size={16}
-              className={input.trim() ? "text-white" : "text-muted/50"}
+              className={input.trim() ? "text-white" : "text-muted-foreground/50"}
             />
           </button>
         </div>
-        <p className="text-center text-xs text-muted/60 mt-3">
+        <p className="text-center text-xs text-muted-foreground/60 mt-3">
           ClearLeaf provides employment intelligence, not legal advice. For
           complex matters, consult a Canadian employment lawyer.
         </p>

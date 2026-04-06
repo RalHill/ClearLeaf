@@ -20,7 +20,7 @@ function UpgradeGate({ onUpgrade }: { onUpgrade: () => void }) {
         <h2 className="font-serif text-3xl text-dark-green mb-4 font-light">
           Starter Plan Required
         </h2>
-        <p className="text-muted text-sm mb-8 leading-relaxed max-w-md mx-auto">
+        <p className="text-muted-foreground text-sm mb-8 leading-relaxed max-w-md mx-auto">
           This walkthrough is available on the Starter and Professional plans. Upgrade to access all 5
           guided walkthroughs with province-specific checklists and statute citations.
         </p>
@@ -30,7 +30,7 @@ function UpgradeGate({ onUpgrade }: { onUpgrade: () => void }) {
         >
           Upgrade to Starter — $49/mo →
         </button>
-        <p className="text-xs text-muted mt-4">No commitment. Cancel anytime.</p>
+        <p className="text-xs text-muted-foreground mt-4">No commitment. Cancel anytime.</p>
       </div>
     </div>
   );
@@ -124,7 +124,7 @@ function StepView({
           <h1 className="font-serif text-3xl text-dark-green mb-1 font-light">
             {walkthrough.title}
           </h1>
-          <p className="text-xs text-muted">
+          <p className="text-xs text-muted-foreground">
             {walkthrough.desc} · All 13 provinces
           </p>
         </div>
@@ -145,7 +145,7 @@ function StepView({
               />
             ))}
           </div>
-          <div className="text-xs text-muted flex justify-between">
+          <div className="text-xs text-muted-foreground flex justify-between">
             <span>Step {stepIndex + 1} of {totalSteps}</span>
             <span>{Math.round(progressPercent)}% complete</span>
           </div>
@@ -182,7 +182,7 @@ function StepView({
 
           {/* Citation */}
           <div className="bg-off-white px-4 py-3 rounded-lg border border-border-color mb-6">
-            <p className="text-xs font-semibold text-muted mb-1">📖 Statute Citation</p>
+            <p className="text-xs font-semibold text-muted-foreground mb-1">📖 Statute Citation</p>
             <p className="text-xs font-mono text-near-black">{step.citation}</p>
           </div>
 
@@ -206,7 +206,7 @@ function StepView({
           </button>
 
           {!requiredChecked && (
-            <p className="text-xs text-muted text-center flex-1">
+            <p className="text-xs text-muted-foreground text-center flex-1">
               Complete required items to continue
             </p>
           )}
@@ -266,7 +266,7 @@ function CompletionView({
           <h2 className="font-serif text-3xl text-dark-green mb-2 font-light">
             {requiredComplete ? "Walkthrough Complete" : "Review Required Items"}
           </h2>
-          <p className="text-sm text-muted mb-6">
+          <p className="text-sm text-muted-foreground mb-6">
             {completedCount} of {allItems.length} items completed · Province: <span className="font-semibold">{province}</span>
           </p>
 
@@ -309,7 +309,7 @@ function CompletionView({
           </div>
         </div>
 
-        <p className="text-xs text-muted text-center">
+        <p className="text-xs text-muted-foreground text-center">
           ClearLeaf provides informational intelligence only — not legal advice. For decisions affecting individual employees, consult a qualified Canadian employment lawyer.
         </p>
       </div>
@@ -430,7 +430,7 @@ export default function WalkthroughsPage() {
           <h2 className="font-serif text-3xl text-dark-green mb-1 font-light">
             Situation Walkthroughs
           </h2>
-          <p className="text-xs text-muted">
+          <p className="text-xs text-muted-foreground">
             Step-by-step guided processes for high-stakes HR situations. Province-specific checklists generated at the end.
           </p>
         </div>
@@ -448,13 +448,13 @@ export default function WalkthroughsPage() {
                 <div className="text-4xl">{w.icon}</div>
                 <div>
                   <h3 className="text-lg font-semibold text-dark-green mb-1">{w.title}</h3>
-                  <p className="text-xs text-muted">{w.desc}</p>
+                  <p className="text-xs text-muted-foreground">{w.desc}</p>
                 </div>
                 <div className="flex gap-2 flex-wrap">
                   <span className="text-xs font-medium px-2 py-1 rounded bg-light-green text-mid-green">
                     {w.steps.length} steps
                   </span>
-                  <span className="text-xs font-medium px-2 py-1 rounded bg-off-white text-muted">
+                  <span className="text-xs font-medium px-2 py-1 rounded bg-off-white text-muted-foreground">
                     All 13 provinces
                   </span>
                   <span className="text-xs font-medium px-2 py-1 rounded bg-light-green text-mid-green">
@@ -466,7 +466,7 @@ export default function WalkthroughsPage() {
                   disabled={upgrading}
                   className={`py-2.5 px-4 rounded-lg text-sm font-semibold transition-colors ${
                     isLocked
-                      ? "bg-off-white text-muted hover:bg-light-green hover:text-mid-green cursor-pointer"
+                      ? "bg-off-white text-muted-foreground hover:bg-light-green hover:text-mid-green cursor-pointer"
                       : "bg-mid-green text-white hover:bg-mid-green/90"
                   }`}
                 >

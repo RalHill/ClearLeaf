@@ -92,7 +92,7 @@ export default function ComparePage() {
           <h2 className="font-serif text-3xl text-dark-green mb-1 font-light">
             Province Comparison
           </h2>
-          <p className="text-xs text-muted">
+          <p className="text-xs text-muted-foreground">
             Compare any employment standard side-by-side across Canadian
             provinces.
           </p>
@@ -100,7 +100,7 @@ export default function ComparePage() {
 
         {/* Province Selection */}
         <div className="mb-6">
-          <div className="text-xs font-semibold text-muted mb-3">
+          <div className="text-xs font-semibold text-muted-foreground mb-3">
             SELECT PROVINCES
           </div>
           <div className="flex gap-2 flex-wrap">
@@ -122,7 +122,7 @@ export default function ComparePage() {
 
         {/* Metric Selection */}
         <div className="mb-6">
-          <div className="text-xs font-semibold text-muted mb-3">
+          <div className="text-xs font-semibold text-muted-foreground mb-3">
             SELECT TOPIC
           </div>
           <div className="flex gap-2 flex-wrap">

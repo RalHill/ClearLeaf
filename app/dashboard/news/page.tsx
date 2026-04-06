@@ -132,7 +132,7 @@ export default function NewsPage() {
           <h2 className="font-serif text-3xl text-dark-green mb-1 font-light">
             Employment Law News
           </h2>
-          <p className="text-xs text-muted">
+          <p className="text-xs text-muted-foreground">
             Auto-updated nightly from 12+ Canadian government and HR sources.
             Summarized by AI.
           </p>
@@ -161,7 +161,7 @@ export default function NewsPage() {
               </button>
             ))}
           </div>
-          <div className="text-xs text-muted whitespace-nowrap">
+          <div className="text-xs text-muted-foreground whitespace-nowrap">
             Updated: March 7, 2026 · 2:00 AM EST
           </div>
         </div>
@@ -179,7 +179,7 @@ export default function NewsPage() {
                     className="w-2 h-2 rounded-full flex-shrink-0"
                     style={{ backgroundColor: item.color }}
                   />
-                  <span className="text-xs font-semibold text-muted">
+                  <span className="text-xs font-semibold text-muted-foreground">
                     {item.sourceShort.toUpperCase()}
                   </span>
                 </div>
@@ -214,7 +214,7 @@ export default function NewsPage() {
                 {item.headline}
               </div>
 
-              <div className="text-xs text-muted leading-relaxed">
+              <div className="text-xs text-muted-foreground leading-relaxed">
                 {item.summary}
               </div>
 
@@ -241,7 +241,7 @@ export default function NewsPage() {
                       className={
                         bookmarkedIds.includes(item.id)
                           ? "fill-mid-green text-mid-green"
-                          : "text-muted"
+                          : "text-muted-foreground"
                       }
                     />
                   </button>
@@ -256,7 +256,7 @@ export default function NewsPage() {
 
         {filteredNews.length === 0 && (
           <div className="text-center py-12">
-            <p className="text-muted text-sm">
+            <p className="text-muted-foreground text-sm">
               No news items found for selected topics.
             </p>
           </div>
