@@ -108,7 +108,7 @@ function DashboardLayoutContent({ children }: DashboardLayoutProps) {
 
   const navItems = [
     { id: "chat", icon: "💬", label: "Ask ClearLeaf", href: "/dashboard/chat" },
-    { id: "news", icon: "📰", label: "News Feed", href: "/dashboard/news" },
+    { id: "news", icon: "📅", label: "Compliance Calendar", href: "/dashboard/news" },
     { id: "compliance", icon: "🛡️", label: "Policy Compliance", href: "/dashboard/compliance" },
     { id: "compare", icon: "⚖️", label: "Province Compare", href: "/dashboard/compare" },
     { id: "walkthroughs", icon: "🗺️", label: "Walkthroughs", href: "/dashboard/walkthroughs" },

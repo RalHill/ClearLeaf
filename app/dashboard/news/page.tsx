@@ -1,268 +1,536 @@
 "use client";
 
-import React, { useState } from "react";
-import { Bookmark } from "lucide-react";
+import React, { useState, useEffect, useCallback } from "react";
+import { ChevronLeft, ChevronRight, X, ExternalLink, AlertTriangle, Clock, Calendar, CheckSquare } from "lucide-react";
+import { useDashboardProvince } from "@/components/dashboard/dashboard-province-context";
 
-interface NewsItem {
+interface Deadline {
   id: number;
-  source: string;
-  sourceShort: string;
-  headline: string;
-  summary: string;
-  date: string;
+  title: string;
+  deadline_type: "tax" | "hr_policy" | "statutory" | "remittance" | "wsib";
+  description: string;
+  due_date: string;
+  recurrence: string;
   provinces: string[];
-  topic: string;
-  color: string;
+  consequence: string;
+  action_items: string[];
+  authority: string;
+  source_url?: string;
 }
 
-const NEWS_ITEMS: NewsItem[] = [
-  {
-    id: 1,
-    source: "Ontario Ministry of Labour",
-    sourceShort: "ON Labour",
-    headline:
-      "Working for Workers Act, 2025: New AI Hiring Disclosure Requirements in Effect",
-    summary:
-      "Ontario employers must now disclose use of AI tools in the hiring process within job postings, effective January 1, 2026. Non-compliance triggers ESA enforcement.",
-    date: "Mar 5, 2026",
-    provinces: ["ON"],
-    topic: "Hiring",
-    color: "#2d6a4f",
-  },
-  {
-    id: 2,
-    source: "ESDC Canada",
-    sourceShort: "Federal",
-    headline:
-      "Canada Labour Code Amendments: Federally Regulated Employer Bereavement Leave Expansion",
-    summary:
-      "Federal employers must now provide up to 10 days of bereavement leave for expanded family categories including chosen family, effective March 2026.",
-    date: "Mar 3, 2026",
-    provinces: ["Federal"],
-    topic: "Leaves",
-    color: "#1a4480",
-  },
-  {
-    id: 3,
-    source: "CNESST Québec",
-    sourceShort: "CNESST",
-    headline:
-      "Mise à jour: Harcèlement psychologique — nouvelles lignes directrices d'enquête 2026",
-    summary:
-      "La CNESST publie des lignes directrices révisées pour les enquêtes sur le harcèlement psychologique, réduisant les délais de réponse requis de 90 à 60 jours.",
-    date: "Mar 1, 2026",
-    provinces: ["QC"],
-    topic: "Harassment",
-    color: "#7b3f6e",
-  },
-  {
-    id: 4,
-    source: "BC Employment Standards",
-    sourceShort: "BC ESB",
-    headline:
-      "BC Court of Appeal: Reasonable Notice Period Expanded for Remote Workers",
-    summary:
-      "The BC Court of Appeal ruled that remote workers may be entitled to longer reasonable notice periods due to reduced mobility and market access considerations.",
-    date: "Feb 28, 2026",
-    provinces: ["BC"],
-    topic: "Termination",
-    color: "#9b4400",
-  },
-  {
-    id: 5,
-    source: "CPHR Canada",
-    sourceShort: "CPHR",
-    headline:
-      "2026 National HR Compensation Report: Canadian Wages Up 4.2% Year-Over-Year",
-    summary:
-      "CPHR Canada's annual compensation survey reveals average Canadian HR professional salaries increased 4.2%, with Alberta and BC leading growth driven by resource sector demand.",
-    date: "Feb 26, 2026",
-    provinces: ["ON", "BC", "AB"],
-    topic: "Compensation",
-    color: "#1a4480",
-  },
-  {
-    id: 6,
-    source: "Alberta Labour",
-    sourceShort: "AB Labour",
-    headline: "Alberta Bill 7: Changes to Group Termination Notice Requirements",
-    summary:
-      "Alberta's new group termination provisions require employers to provide 4 weeks advance notice to the Director of Employment Standards when terminating 50 or more employees.",
-    date: "Feb 24, 2026",
-    provinces: ["AB"],
-    topic: "Termination",
-    color: "#5c3200",
-  },
-];
+const TYPE_LABELS: Record<string, string> = {
+  tax: "Tax",
+  hr_policy: "HR Policy",
+  statutory: "Statutory",
+  remittance: "Remittance",
+  wsib: "WSIB / WCB",
+};
 
-const TOPICS = [
-  "Termination",
-  "Harassment",
-  "Accommodation",
-  "Leaves",
-  "Hiring",
-  "Compensation",
-  "Federal",
-];
+const TYPE_COLORS: Record<string, { bg: string; text: string; dot: string }> = {
+  tax:        { bg: "bg-blue-100",   text: "text-blue-800",   dot: "bg-blue-500" },
+  hr_policy:  { bg: "bg-purple-100", text: "text-purple-800", dot: "bg-purple-500" },
+  statutory:  { bg: "bg-teal-100",   text: "text-teal-800",   dot: "bg-teal-500" },
+  remittance: { bg: "bg-orange-100", text: "text-orange-800", dot: "bg-orange-500" },
+  wsib:       { bg: "bg-rose-100",   text: "text-rose-800",   dot: "bg-rose-500" },
+};
 
-export default function NewsPage() {
-  const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
-  const [bookmarkedIds, setBookmarkedIds] = useState<number[]>([]);
+function getDaysUntil(dueDateStr: string): number {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  // Parse just the date portion to avoid timezone issues
+  const datePart = dueDateStr.slice(0, 10); // "YYYY-MM-DD"
+  const [y, m, d] = datePart.split("-").map(Number);
+  const due = new Date(y, m - 1, d);
+  return Math.ceil((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+}
 
-  const filteredNews =
-    selectedTopics.length === 0
-      ? NEWS_ITEMS
-      : NEWS_ITEMS.filter((item) => selectedTopics.includes(item.topic));
+function getSeverity(days: number): "critical" | "important" | "upcoming" | "info" | "past" {
+  if (days < 0) return "past";
+  if (days <= 14) return "critical";
+  if (days <= 28) return "important";
+  if (days <= 60) return "upcoming";
+  return "info";
+}
+
+const SEVERITY_STYLES = {
+  critical:  { bar: "bg-red-500",    badge: "bg-red-100 text-red-700",    label: "Due soon" },
+  important: { bar: "bg-amber-500",  badge: "bg-amber-100 text-amber-700", label: "Upcoming" },
+  upcoming:  { bar: "bg-yellow-400", badge: "bg-yellow-100 text-yellow-700", label: "Upcoming" },
+  info:      { bar: "bg-accent-green", badge: "bg-light-green text-mid-green", label: "" },
+  past:      { bar: "bg-gray-300",   badge: "bg-gray-100 text-gray-500",  label: "Past" },
+};
+
+function buildCalendarDays(year: number, month: number): (Date | null)[] {
+  const firstDay = new Date(year, month, 1).getDay(); // 0=Sun
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const cells: (Date | null)[] = [];
+  for (let i = 0; i < firstDay; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(new Date(year, month, d));
+  return cells;
+}
+
+function formatDate(dateStr: string): string {
+  const datePart = dateStr.slice(0, 10);
+  const [y, m, d] = datePart.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString("en-CA", { year: "numeric", month: "long", day: "numeric" });
+}
+
+const ALL_TYPES = ["tax", "hr_policy", "statutory", "remittance", "wsib"];
+
+export default function ComplianceCalendarPage() {
+  const { province } = useDashboardProvince();
+  const [deadlines, setDeadlines] = useState<Deadline[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedDeadline, setSelectedDeadline] = useState<Deadline | null>(null);
+  const [activeTypes, setActiveTypes] = useState<string[]>([]);
+  const [viewMode, setViewMode] = useState<"calendar" | "list">("calendar");
+
+  // Calendar state
+  const today = new Date();
+  const [calYear, setCalYear] = useState(today.getFullYear());
+  const [calMonth, setCalMonth] = useState(today.getMonth());
+
+  const fetchDeadlines = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({ province });
+      const res = await fetch(`/api/compliance-calendar?${params}`);
+      const data = await res.json();
+      setDeadlines(data.deadlines ?? []);
+    } catch {
+      setDeadlines([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [province]);
+
+  useEffect(() => {
+    fetchDeadlines();
+  }, [fetchDeadlines]);
+
+  const filteredDeadlines = activeTypes.length === 0
+    ? deadlines
+    : deadlines.filter((d) => activeTypes.includes(d.deadline_type));
+
+  // Group by date string for calendar lookup
+  const byDate: Record<string, Deadline[]> = {};
+  for (const d of filteredDeadlines) {
+    const key = d.due_date.slice(0, 10);
+    if (!byDate[key]) byDate[key] = [];
+    byDate[key].push(d);
+  }
+
+  const calCells = buildCalendarDays(calYear, calMonth);
+  const monthName = new Date(calYear, calMonth, 1).toLocaleDateString("en-CA", { month: "long", year: "numeric" });
+
+  function prevMonth() {
+    if (calMonth === 0) { setCalYear(y => y - 1); setCalMonth(11); }
+    else setCalMonth(m => m - 1);
+  }
+  function nextMonth() {
+    if (calMonth === 11) { setCalYear(y => y + 1); setCalMonth(0); }
+    else setCalMonth(m => m + 1);
+  }
+
+  // List view: upcoming sorted
+  const upcoming = filteredDeadlines
+    .filter((d) => getDaysUntil(d.due_date) >= 0)
+    .sort((a, b) => a.due_date.localeCompare(b.due_date));
+
+  const past = filteredDeadlines
+    .filter((d) => getDaysUntil(d.due_date) < 0)
+    .sort((a, b) => b.due_date.localeCompare(a.due_date));
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      {/* Disclaimer banner */}
-      <div className="bg-blue-50 border-b border-blue-200 px-6 py-3 flex-shrink-0">
-        <div className="max-w-4xl mx-auto">
-          <p className="text-sm text-blue-900">
-            <span className="font-semibold">Note:</span> These are illustrative example news items for reference. For live regulatory updates, consult official government sources or use ClearLeaf's AI Chat to ask about the latest rules in your jurisdiction.
-          </p>
-        </div>
-      </div>
-
-      <div className="flex-1 overflow-y-auto px-6 py-6">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="mb-6">
-          <h2 className="font-serif text-3xl text-dark-green mb-1 font-light">
-            Employment Law News
-          </h2>
-          <p className="text-xs text-muted-foreground">
-            Auto-updated nightly from 12+ Canadian government and HR sources.
-            Summarized by AI.
-          </p>
-        </div>
-
-        {/* Filters */}
-        <div className="flex items-center justify-between gap-3 mb-6 flex-wrap">
-          <div className="flex gap-2 flex-wrap">
-            {TOPICS.map((topic) => (
-              <button
-                key={topic}
-                onClick={() =>
-                  setSelectedTopics((prev) =>
-                    prev.includes(topic)
-                      ? prev.filter((t) => t !== topic)
-                      : [...prev, topic]
-                  )
-                }
-                className={`chip px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                  selectedTopics.includes(topic)
-                    ? "bg-mid-green text-white"
-                    : "bg-white border border-border-color text-mid-green hover:bg-light-green"
-                }`}
-              >
-                {topic}
-              </button>
-            ))}
-          </div>
-          <div className="text-xs text-muted-foreground whitespace-nowrap">
-            Updated: March 7, 2026 · 2:00 AM EST
-          </div>
-        </div>
-
-        {/* News Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {filteredNews.map((item) => (
-            <div
-              key={item.id}
-              className="news-card bg-white rounded-xl border border-border-color p-4 flex flex-col gap-3 hover:shadow-lg transition-all"
-            >
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <div
-                    className="w-2 h-2 rounded-full flex-shrink-0"
-                    style={{ backgroundColor: item.color }}
-                  />
-                  <span className="text-xs font-semibold text-muted-foreground">
-                    {item.sourceShort.toUpperCase()}
-                  </span>
-                </div>
-                <div className="flex gap-1 items-center">
-                  {item.provinces.map((p) => {
-                    let bgColor = "#eef4f1";
-                    let textColor = "#2c5f4f";
-                    if (p === "QC") {
-                      bgColor = "#f3e8f9";
-                      textColor = "#7b3f6e";
-                    } else if (p === "Federal") {
-                      bgColor = "#e8eef9";
-                      textColor = "#1a4480";
-                    }
-                    return (
-                      <span
-                        key={p}
-                        className="text-xs font-semibold px-1.5 py-0.5 rounded"
-                        style={{ backgroundColor: bgColor, color: textColor }}
-                      >
-                        {p}
-                      </span>
-                    );
-                  })}
-                  <span className="text-xs text-border-color ml-1">
-                    {item.date}
-                  </span>
-                </div>
-              </div>
-
-              <div className="text-sm font-semibold text-dark-green leading-snug">
-                {item.headline}
-              </div>
-
-              <div className="text-xs text-muted-foreground leading-relaxed">
-                {item.summary}
-              </div>
-
-              <div className="flex items-center justify-between pt-2 border-t border-off-white">
-                <span
-                  className="text-xs font-medium px-2 py-1 rounded"
-                  style={{ backgroundColor: "#f3f2ef", color: "#666" }}
-                >
-                  {item.topic}
-                </span>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() =>
-                      setBookmarkedIds((prev) =>
-                        prev.includes(item.id)
-                          ? prev.filter((id) => id !== item.id)
-                          : [...prev, item.id]
-                      )
-                    }
-                    className="p-1 hover:bg-light-green rounded transition-colors"
-                  >
-                    <Bookmark
-                      size={14}
-                      className={
-                        bookmarkedIds.includes(item.id)
-                          ? "fill-mid-green text-mid-green"
-                          : "text-muted-foreground"
-                      }
-                    />
-                  </button>
-                  <button className="text-xs text-mid-green font-medium hover:underline">
-                    Read more →
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {filteredNews.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground text-sm">
-              No news items found for selected topics.
+      {/* Header bar */}
+      <div className="flex-shrink-0 bg-white border-b border-border-color px-6 py-4">
+        <div className="max-w-6xl mx-auto flex items-center justify-between gap-4 flex-wrap">
+          <div>
+            <h2 className="font-serif text-2xl text-dark-green font-light">Compliance Calendar</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Employment law deadlines for <span className="font-semibold text-mid-green">{province}</span> + Federal
             </p>
           </div>
-        )}
+
+          <div className="flex items-center gap-3">
+            {/* View toggle */}
+            <div className="flex border border-border-color rounded-lg overflow-hidden text-xs">
+              <button
+                onClick={() => setViewMode("calendar")}
+                className={`px-3 py-1.5 font-medium transition-colors ${viewMode === "calendar" ? "bg-dark-green text-white" : "text-muted-foreground hover:bg-light-green"}`}
+              >
+                📅 Calendar
+              </button>
+              <button
+                onClick={() => setViewMode("list")}
+                className={`px-3 py-1.5 font-medium transition-colors ${viewMode === "list" ? "bg-dark-green text-white" : "text-muted-foreground hover:bg-light-green"}`}
+              >
+                ☰ List
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Type filters */}
+        <div className="max-w-6xl mx-auto flex items-center gap-2 mt-3 flex-wrap">
+          <span className="text-xs text-muted-foreground mr-1">Filter:</span>
+          {ALL_TYPES.map((type) => {
+            const c = TYPE_COLORS[type];
+            const active = activeTypes.includes(type);
+            return (
+              <button
+                key={type}
+                onClick={() => setActiveTypes((prev) =>
+                  prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]
+                )}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
+                  active ? `${c.bg} ${c.text} border-transparent` : "bg-white text-muted-foreground border-border-color hover:bg-off-white"
+                }`}
+              >
+                <span className={`w-2 h-2 rounded-full ${c.dot}`} />
+                {TYPE_LABELS[type]}
+              </button>
+            );
+          })}
+          {activeTypes.length > 0 && (
+            <button onClick={() => setActiveTypes([])} className="text-xs text-muted-foreground hover:text-near-black underline ml-1">
+              Clear
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Main content */}
+      <div className="flex-1 overflow-y-auto px-6 py-6">
+        <div className="max-w-6xl mx-auto">
+          {loading ? (
+            <div className="flex items-center justify-center h-40 text-muted-foreground text-sm">
+              Loading deadlines…
+            </div>
+          ) : viewMode === "calendar" ? (
+            <CalendarView
+              calCells={calCells}
+              calYear={calYear}
+              calMonth={calMonth}
+              monthName={monthName}
+              byDate={byDate}
+              today={today}
+              onPrev={prevMonth}
+              onNext={nextMonth}
+              onSelectDeadline={setSelectedDeadline}
+            />
+          ) : (
+            <ListView
+              upcoming={upcoming}
+              past={past}
+              onSelectDeadline={setSelectedDeadline}
+            />
+          )}
+        </div>
+      </div>
+
+      {/* Detail panel */}
+      {selectedDeadline && (
+        <DetailPanel
+          deadline={selectedDeadline}
+          onClose={() => setSelectedDeadline(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+// ── Calendar View ─────────────────────────────────────────────────────────────
+
+function CalendarView({
+  calCells, calYear, calMonth, monthName, byDate, today, onPrev, onNext, onSelectDeadline,
+}: {
+  calCells: (Date | null)[];
+  calYear: number;
+  calMonth: number;
+  monthName: string;
+  byDate: Record<string, Deadline[]>;
+  today: Date;
+  onPrev: () => void;
+  onNext: () => void;
+  onSelectDeadline: (d: Deadline) => void;
+}) {
+  const DOW = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+  return (
+    <div>
+      {/* Month nav */}
+      <div className="flex items-center justify-between mb-4">
+        <button onClick={onPrev} className="p-2 rounded-lg hover:bg-light-green transition-colors text-mid-green">
+          <ChevronLeft size={18} />
+        </button>
+        <h3 className="font-serif text-xl text-dark-green font-light">{monthName}</h3>
+        <button onClick={onNext} className="p-2 rounded-lg hover:bg-light-green transition-colors text-mid-green">
+          <ChevronRight size={18} />
+        </button>
+      </div>
+
+      {/* Day-of-week headers */}
+      <div className="grid grid-cols-7 mb-1">
+        {DOW.map((d) => (
+          <div key={d} className="text-center text-xs font-semibold text-muted-foreground py-2">
+            {d}
+          </div>
+        ))}
+      </div>
+
+      {/* Calendar grid */}
+      <div className="grid grid-cols-7 gap-1">
+        {calCells.map((cell, i) => {
+          if (!cell) return <div key={`empty-${i}`} className="h-24 rounded-lg bg-off-white/50" />;
+
+          const key = `${cell.getFullYear()}-${String(cell.getMonth() + 1).padStart(2, "0")}-${String(cell.getDate()).padStart(2, "0")}`;
+          const cellDeadlines = byDate[key] ?? [];
+          const isToday = cell.toDateString() === today.toDateString();
+          const isThisMonth = cell.getMonth() === calMonth;
+
+          return (
+            <div
+              key={key}
+              className={`h-24 rounded-lg border p-1 flex flex-col overflow-hidden ${
+                isToday ? "border-mid-green bg-light-green/40" : "border-border-color bg-white"
+              } ${!isThisMonth ? "opacity-40" : ""}`}
+            >
+              <span className={`text-xs font-semibold mb-1 ${isToday ? "text-mid-green" : "text-near-black"}`}>
+                {cell.getDate()}
+              </span>
+              <div className="flex flex-col gap-0.5 overflow-hidden">
+                {cellDeadlines.slice(0, 3).map((dl) => {
+                  const days = getDaysUntil(dl.due_date);
+                  const sev = getSeverity(days);
+                  const styles = SEVERITY_STYLES[sev];
+                  const c = TYPE_COLORS[dl.deadline_type];
+                  return (
+                    <button
+                      key={dl.id}
+                      onClick={() => onSelectDeadline(dl)}
+                      className={`text-left px-1 py-0.5 rounded text-xs leading-tight truncate flex items-center gap-1 ${c.bg} ${c.text} hover:opacity-80 transition-opacity`}
+                      title={dl.title}
+                    >
+                      <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${styles.bar}`} />
+                      <span className="truncate">{dl.title}</span>
+                    </button>
+                  );
+                })}
+                {cellDeadlines.length > 3 && (
+                  <span className="text-xs text-muted-foreground pl-1">+{cellDeadlines.length - 3} more</span>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Legend */}
+      <div className="flex items-center gap-4 mt-4 pt-4 border-t border-border-color flex-wrap">
+        <span className="text-xs text-muted-foreground font-medium">Urgency:</span>
+        {(["critical", "important", "upcoming", "info"] as const).map((sev) => (
+          <div key={sev} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <span className={`w-2.5 h-2.5 rounded-full ${SEVERITY_STYLES[sev].bar}`} />
+            {sev === "critical" ? "≤14 days" : sev === "important" ? "15–28 days" : sev === "upcoming" ? "29–60 days" : "61+ days"}
+          </div>
+        ))}
       </div>
     </div>
+  );
+}
+
+// ── List View ─────────────────────────────────────────────────────────────────
+
+function ListView({
+  upcoming,
+  past,
+  onSelectDeadline,
+}: {
+  upcoming: Deadline[];
+  past: Deadline[];
+  onSelectDeadline: (d: Deadline) => void;
+}) {
+  return (
+    <div className="space-y-6">
+      {upcoming.length === 0 && past.length === 0 && (
+        <p className="text-center text-muted-foreground text-sm py-12">No deadlines found for selected filters.</p>
+      )}
+
+      {upcoming.length > 0 && (
+        <section>
+          <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Upcoming</h4>
+          <div className="space-y-2">
+            {upcoming.map((dl) => <DeadlineRow key={dl.id} deadline={dl} onClick={() => onSelectDeadline(dl)} />)}
+          </div>
+        </section>
+      )}
+
+      {past.length > 0 && (
+        <section>
+          <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Past</h4>
+          <div className="space-y-2 opacity-60">
+            {past.map((dl) => <DeadlineRow key={dl.id} deadline={dl} onClick={() => onSelectDeadline(dl)} />)}
+          </div>
+        </section>
+      )}
+    </div>
+  );
+}
+
+function DeadlineRow({ deadline, onClick }: { deadline: Deadline; onClick: () => void }) {
+  const days = getDaysUntil(deadline.due_date);
+  const sev = getSeverity(days);
+  const styles = SEVERITY_STYLES[sev];
+  const c = TYPE_COLORS[deadline.deadline_type];
+
+  return (
+    <button
+      onClick={onClick}
+      className="w-full text-left bg-white border border-border-color rounded-lg px-4 py-3 flex items-center gap-4 hover:shadow-md transition-all group"
+    >
+      {/* Severity bar */}
+      <div className={`w-1 h-10 rounded-full flex-shrink-0 ${styles.bar}`} />
+
+      {/* Due date */}
+      <div className="w-20 flex-shrink-0">
+        <div className="text-xs font-semibold text-near-black">{formatDate(deadline.due_date).split(",")[0].trim()}</div>
+        <div className="text-xs text-muted-foreground">
+          {days < 0 ? `${Math.abs(days)}d ago` : days === 0 ? "Today" : `${days}d left`}
+        </div>
+      </div>
+
+      {/* Title + authority */}
+      <div className="flex-1 min-w-0">
+        <div className="text-sm font-semibold text-near-black truncate">{deadline.title}</div>
+        <div className="text-xs text-muted-foreground truncate">{deadline.authority}</div>
+      </div>
+
+      {/* Type badge */}
+      <span className={`px-2 py-0.5 rounded-full text-xs font-medium flex-shrink-0 ${c.bg} ${c.text}`}>
+        {TYPE_LABELS[deadline.deadline_type]}
+      </span>
+
+      {/* Provinces */}
+      <div className="flex gap-1 flex-shrink-0">
+        {deadline.provinces.map((p) => (
+          <span key={p} className="text-xs font-semibold px-1.5 py-0.5 rounded bg-off-white text-muted-foreground">
+            {p}
+          </span>
+        ))}
+      </div>
+    </button>
+  );
+}
+
+// ── Detail Panel ──────────────────────────────────────────────────────────────
+
+function DetailPanel({ deadline, onClose }: { deadline: Deadline; onClose: () => void }) {
+  const days = getDaysUntil(deadline.due_date);
+  const sev = getSeverity(days);
+  const styles = SEVERITY_STYLES[sev];
+  const c = TYPE_COLORS[deadline.deadline_type];
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/40" onClick={onClose}>
+      <div
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[80vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-start justify-between p-5 border-b border-border-color gap-3">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${c.bg} ${c.text}`}>
+                {TYPE_LABELS[deadline.deadline_type]}
+              </span>
+              {sev !== "past" && (
+                <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${styles.badge}`}>
+                  {days === 0 ? "Due today" : days === 1 ? "Due tomorrow" : `${days} days left`}
+                </span>
+              )}
+              {sev === "past" && (
+                <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
+                  {Math.abs(days)}d past
+                </span>
+              )}
+            </div>
+            <h3 className="font-serif text-lg text-dark-green font-normal leading-snug">{deadline.title}</h3>
+          </div>
+          <button onClick={onClose} className="p-1.5 hover:bg-off-white rounded-lg transition-colors flex-shrink-0">
+            <X size={18} className="text-muted-foreground" />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="p-5 space-y-4">
+          {/* Due date */}
+          <div className="flex items-center gap-2 text-sm">
+            <Calendar size={15} className="text-mid-green flex-shrink-0" />
+            <span className="font-semibold text-near-black">{formatDate(deadline.due_date)}</span>
+            <span className="text-muted-foreground">· {deadline.recurrence}</span>
+          </div>
+
+          {/* Description */}
+          <p className="text-sm text-near-black leading-relaxed">{deadline.description}</p>
+
+          {/* Consequence */}
+          <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex gap-2">
+            <AlertTriangle size={15} className="text-red-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <div className="text-xs font-semibold text-red-700 mb-1">Consequence of missing</div>
+              <p className="text-xs text-red-800 leading-relaxed">{deadline.consequence}</p>
+            </div>
+          </div>
+
+          {/* Action items */}
+          {deadline.action_items.length > 0 && (
+            <div>
+              <div className="flex items-center gap-1.5 mb-2">
+                <CheckSquare size={14} className="text-mid-green" />
+                <span className="text-xs font-semibold text-near-black">Action items</span>
+              </div>
+              <ul className="space-y-1.5">
+                {deadline.action_items.map((item, i) => (
+                  <li key={i} className="flex items-start gap-2 text-xs text-near-black">
+                    <span className="w-4 h-4 rounded border border-border-color flex-shrink-0 mt-0.5" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Authority */}
+          <div className="flex items-start gap-2 text-xs text-muted-foreground border-t border-border-color pt-3">
+            <Clock size={13} className="flex-shrink-0 mt-0.5" />
+            <span>{deadline.authority}</span>
+          </div>
+
+          {/* Provinces */}
+          <div className="flex gap-1.5">
+            {deadline.provinces.map((p) => (
+              <span key={p} className="text-xs font-semibold px-2 py-1 rounded bg-light-green text-mid-green">
+                {p}
+              </span>
+            ))}
+          </div>
+
+          {/* Source link */}
+          {deadline.source_url && (
+            <a
+              href={deadline.source_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-xs text-mid-green hover:underline"
+            >
+              <ExternalLink size={12} />
+              View official source
+            </a>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

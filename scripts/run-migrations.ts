@@ -13,6 +13,7 @@ const migrations = [
   "supabase/migrations/005_feedback.sql",
   "supabase/migrations/006_functions.sql",
   "supabase/migrations/007_remove_policy_templates.sql",
+  "supabase/migrations/008_compliance_calendar.sql",
 ];
 
 async function runMigrations() {
